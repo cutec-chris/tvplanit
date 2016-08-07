@@ -54,7 +54,7 @@ uses
   {$ENDIF}
   Classes, Graphics, Controls, ComCtrls, ExtCtrls, StdCtrls,
   VpBase, VpBaseDS, VpMisc, VpData, VpSR, VpConst, VpCanvasUtils, Menus,
-  VpDayView;
+  VpDayView,LazUTF8;
 
 type
   TVpWeekdayRec = packed record
