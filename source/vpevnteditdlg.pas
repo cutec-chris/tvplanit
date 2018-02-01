@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpEvntEditDlg;
   { The default event edit dialog }
@@ -35,14 +35,25 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,LResources,
+  LCLProc, LCLType, LCLIntf, LResources, LCLVersion, EditBtn,
   {$ELSE}
   Windows, Messages, Mask,
   {$ENDIF}
   SysUtils, {$IFDEF VERSION6}Variants,{$ENDIF} Classes,
-  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, VpData, VpEdPop,
-  VpDateEdit, ComCtrls, VpBase, VpClock, VpBaseDS, VpDlg, VpConst,
-  Buttons, EditBtn;
+  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls, Buttons,
+  VpData, VpBase, VpBaseDS, VpDlg, VpConst;
+
+const
+ blabla = 1;  // to make the $IF work in Laz 1.4.4. Why?
+
+{$UNDEF NEW_TIME_EDIT}
+
+{$IFDEF LCL}
+  {$DEFINE NEW_TIME_EDIT}
+  {$IF (lcl_major=1) and (lcl_minor<6)}
+    {$UNDEF NEW_TIME_EDIT}
+  {$ENDIF}
+{$ENDIF}
 
 type
   { forward declarations }
@@ -52,6 +63,7 @@ type
 
   TVpRightAlignedEdit = class(TEdit)
   public
+    constructor Create(AOwner: TComponent); override;
     procedure CreateParams(var Params : TCreateParams); override;
   end;
 
@@ -59,11 +71,17 @@ type
 
   TDlgEventEdit = class(TForm)
     AlarmAdvance: TEdit;
+    Bevel4: TBevel;
+    StartTimePlaceholder: TEdit;
+    EndTimePlaceholder: TEdit;
+    LocationEdit: TEdit;
+    LocationLbl: TLabel;
     NotesMemo: TMemo;
+    Panel1: TPanel;
     StartDate: TDateEdit;
     EndDate: TDateEdit;
     RepeatUntil: TDateEdit;
-    Panel1: TPanel;
+    ButtonPanel: TPanel;
     OKBtn: TButton;
     CancelBtn: TButton;
     ResourceNameLbl: TLabel;
@@ -77,51 +95,57 @@ type
     CategoryLbl: TLabel;
     StartTimeLbl: TLabel;
     EndTimeLbl: TLabel;
-    Image2: TImage;
+    ImgRecurring: TImage;
     RecurringLbl: TLabel;
     Bevel3: TBevel;
     IntervalLbl: TLabel;
-    Image1: TImage;
-    SpeedButton1: TSpeedButton;
+    ImgAlarm: TImage;
+    SoundFinderBtn: TSpeedButton;
     DescriptionEdit: TEdit;
     AlarmSet: TCheckBox;
-    StartTime: TComboBox;
-    EndTime: TComboBox;
     Category: TComboBox;
     RecurringType: TComboBox;
     IntervalUpDown: TUpDown;
-    AlarmAdvType: TComboBox;
+    AlarmAdvanceType: TComboBox;
     AdvanceUpDown: TUpDown;
     CBAllDay: TCheckBox;
-    edtUnusedPlaceholder: TEdit;
+    CustomInterval: TEdit;
     imgClock: TImage;
     RecurrenceEndsLbl: TLabel;
+    procedure AdvanceUpDownClick(Sender: TObject; Button: TUDBtnType);
+    procedure AlarmAdvanceChange(Sender: TObject);
+    procedure AlarmSetClick(Sender: TObject);
+    procedure CancelBtnClick(Sender: TObject);
     procedure CategoryDrawItem(Control: TWinControl; Index: Integer;
       ARect: TRect; State: TOwnerDrawState);
-    procedure OKBtnClick(Sender: TObject);
-    procedure CancelBtnClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
-    procedure StartDateChange(Sender: TObject);
-    procedure StartTimeChange(Sender: TObject);
-    procedure EndTimeChange(Sender: TObject);
-    procedure AlarmAdvanceChange(Sender: TObject);
-    procedure AdvanceUpDownClick(Sender: TObject; Button: TUDBtnType);
+    procedure CBAllDayClick(Sender: TObject);
     procedure CustomIntervalChange(Sender: TObject);
+    procedure OKBtnClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure IntervalUpDownClick(Sender: TObject; Button: TUDBtnType);
     procedure RecurringTypeChange(Sender: TObject);
-    procedure AlarmSetClick(Sender: TObject);
-    procedure EndDateChange(Sender: TObject);
-    procedure CBAllDayClick(Sender: TObject);
-    procedure SpeedButton1Click(Sender: TObject);
-    procedure FormShow(Sender: TObject);
-    procedure StartTimeExit(Sender: TObject);
-    procedure EndTimeExit(Sender: TObject);
+    procedure SoundFinderBtnClick(Sender: TObject);
+
   private { Private declarations }
+   {$IFDEF NEW_TIME_EDIT}
+    StartTime: TTimeEdit;
+    EndTime: TTimeEdit;
+   {$ELSE}
+    StartTime: TCombobox;
+    EndTime: TCombobox;
+   {$ENDIF}
+    FDatastore: TVpCustomDatastore;
     AAVerifying: Boolean;
     CIVerifying: Boolean;
-    FCustomInterval : TVpRightAlignedEdit;
     procedure PopLists;
+    procedure PositionControls;
     procedure LoadCaptions;
+    procedure DoPlaySound(Sender: TObject; const AWavFile: String; AMode: TVpPlaySoundMode);
+
+  protected
+    property Datastore: TVpCustomDatastore read FDatastore write FDatastore;
+
   public { Public declarations }
     Event: TVpEvent;
     CatColorMap: TVpCategoryColorMap;
@@ -130,7 +154,7 @@ type
     Conflicts : Integer;
     TimeFormat: TVpTimeFormat;
     AlarmWavPath: string;
-    FLastEndTime : TDateTime;                                            
+    FLastEndTime : TDateTime;
 
     procedure PopulateDialog;
     procedure DePopulateDialog;
@@ -138,18 +162,16 @@ type
 
   TVpEventEditDialog = class(TVpBaseDialog)
   protected {private}
-    ceEditDlg         : TDlgEventEdit;
-    FTimeFormat       : TVpTimeFormat;
-    ceEvent           : TVpEvent;
+    ceEditDlg: TDlgEventEdit;
+    FTimeFormat: TVpTimeFormat;
+    ceEvent: TVpEvent;
   public
     constructor Create(AOwner : TComponent); override;
-    function Execute(Event: TVpEvent;
-      TimeFormat: TVpTimeFormat = tf12Hour): Boolean; reintroduce;
-    function AddNewEvent(StartTime, EndTime: TDateTime): Boolean;
+    function Execute(Event: TVpEvent): Boolean; reintroduce;
+    function AddNewEvent(PlaceholderStartTime, EndTimePlaceholder: TDateTime): Boolean;
   published
     {properties}
-    property TimeFormat: TVpTimeFormat
-      read FTimeFormat write FTimeFormat default tf12Hour;
+    property TimeFormat: TVpTimeFormat read FTimeFormat write FTimeFormat default tf12Hour;
     property DataStore;
     property Options;
     property Placement;
@@ -158,13 +180,25 @@ type
 implementation
 
 uses
-  VpSR, VpWavDlg;
+  DateUtils,
+  VpSR, VpMisc, VpWavDlg;
 
-{$IFNDEF LCL}
-{$R *.dfm}
+{$IFDEF LCL}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
 {$ENDIF}
 
+
 { TVpRightAlignedEdit }
+
+constructor TVpRightAlignedEdit.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+ {$IFDEF LCL}
+  Alignment := taRightJustify;
+ {$ENDIF}
+end;
 
 procedure TVpRightAlignedEdit.CreateParams(var Params: TCreateParams);
 begin
@@ -180,30 +214,77 @@ end;
 
 procedure TDlgEventEdit.FormCreate(Sender: TObject);
 begin
+ {$IFDEF NEW_TIME_EDIT}
+  StartTime := TTimeEdit.Create(self);
+ {$ELSE}
+  StartTime := TCombobox.Create(self);
+  StartTime.ItemIndex := -1;
+ {$ENDIF}
+  StartTime.Parent := AppointmentGroupbox;
+  StartTime.Width := StartDate.Width;
+  StartTime.Left := AlarmAdvanceType.Left;
+  StartTime.Top := StartDate.Top;
+  StartTime.AnchorSideLeft.Control := AlarmAdvanceType;
+  StartTime.AnchorSideTop.Control := StartDate;
+  StartTime.Anchors := [akLeft, akTop];
+  StartTime.TabOrder := StartDate.TabOrder + 1;
+  Bevel3.AnchorsideLeft.Control := Starttime;
+  StartTimePlaceHolder.Free;
+
+ {$IFDEF NEW_TIME_EDIT}
+  EndTime := TTimeEdit.Create(self);
+ {$ELSE}
+  EndTime := TCombobox.Create(self);
+  EndTime.ItemIndex := -1;
+ {$ENDIF}
+  EndTime.Parent := AppointmentGroupbox;
+  EndTime.Width := EndDate.Width;
+  EndTime.Left := AlarmAdvanceType.Left;
+  EndTime.Top := EndDate.Top;
+  EndTime.AnchorSideLeft.Control := AlarmAdvanceType;
+  EndTime.AnchorSideTop.Control := EndDate;
+  EndTime.Anchors := [akLeft, akTop];
+  EndTime.TabOrder := EndDate.TabOrder + 1;
+  EndTimePlaceHolder.Free;
+
   ReturnCode := rtAbandon;
   PopLists;
   LoadCaptions;
-  StartTime.ItemIndex := -1;
-  EndTime.ItemIndex := -1;
   EndDate.Enabled := False;
-
-  FCustomInterval := TVpRightAlignedEdit.Create(Self);
-  with FCustomInterval do begin
-    Parent := AppointmentGroupbox;
-    Top := IntervalUpDown.Top + 1;
-    Left := IntervalUpDown.Left - 65;
-    Height := IntervalUpDown.Height - 1;
-    Width := 65;
-    MaxLength := 5;
-    OnChange := CustomIntervalChange;
-    TabOrder := edtUnusedPlaceholder.TabOrder;
-  end;
-  IntervalUpDown.Associate := FCustomInterval;
+  EndTime.Enabled := false;
 end;
 {=====}
 
 procedure TDlgEventEdit.OKBtnClick(Sender: TObject);
+var
+  res: Integer;
+  tStart, tEnd: TDateTime;
 begin
+ {$IFDEF NEW_TIME_EDIT}
+  tStart := trunc(StartDate.Date) + frac(StartTime.Time);
+  tEnd := trunc(EndDate.Date) + frac(EndTime.Time);
+ {$ELSE}
+  tStart := trunc(StartDate.Date) + StrToTime(StartTime.Text);
+  tEnd := trunc(EndDate.Date) + StrToTime(EndTime.Text);
+ {$ENDIF}
+
+  if (tStart > tEnd) then begin
+    res := MessageDlg(RSStartEndTimeError,
+      mtConfirmation, [mbYes, mbNo], 0);
+    if res = mrYes then begin
+      StartDate.Date := trunc(tEnd);
+      EndDate.Date := trunc(tStart);
+     {$IFDEF NEW_TIME_EDIT}
+      StartTime.Time := TimeOf(tEnd);
+      EndTime.Time := TimeOf(tStart);
+     {$ELSE}
+      StartTime.Text := FormatDateTime('hh:nn', TimeOf(tEnd));
+      EndTime.Text := FormatDateTime('hh:nn', TimeOf(tStart));
+     {$ENDIF}
+    end else
+      exit;
+  end;
+
   ReturnCode := rtCommit;
   Close;
 end;
@@ -215,50 +296,12 @@ var
   Name: string;
   ColorRect: TRect;
 begin
+  Unused(Control, State);
+
   Category.Canvas.FillRect(ARect);
-  Color := clBlack;
-  case Index of
-    0: begin
-      Color := CatColorMap.Category0.Color;
-      Name := CatColorMap.Category0.Description;
-    end;
-    1:  begin
-      Color := CatColorMap.Category1.Color;
-      Name := CatColorMap.Category1.Description;
-    end;
-    2:  begin
-      Color := CatColorMap.Category2.Color;
-      Name := CatColorMap.Category2.Description;
-    end;
-    3:  begin
-      Color := CatColorMap.Category3.Color;
-      Name := CatColorMap.Category3.Description;
-    end;
-    4:  begin
-      Color := CatColorMap.Category4.Color;
-      Name := CatColorMap.Category4.Description;
-    end;
-    5:  begin
-      Color := CatColorMap.Category5.Color;
-      Name := CatColorMap.Category5.Description;
-    end;
-    6:  begin
-      Color := CatColorMap.Category6.Color;
-      Name := CatColorMap.Category6.Description;
-    end;
-    7:  begin
-      Color := CatColorMap.Category7.Color;
-      Name := CatColorMap.Category7.Description;
-    end;
-    8:  begin
-      Color := CatColorMap.Category8.Color;
-      Name := CatColorMap.Category8.Description;
-    end;
-    9:  begin
-      Color := CatColorMap.Category9.Color;
-      Name := CatColorMap.Category9.Description;
-    end;
-  end; {Case}
+
+  Color := CatColorMap.GetCategory(Index).Color;
+  Name := CatColorMap.GetCategory(Index).Description;
 
   SaveColor := Category.Canvas.Brush.Color;
   Category.Canvas.Brush.Color := Color;
@@ -279,13 +322,10 @@ begin
   Category.Canvas.TextOut(ARect.Left, ARect.Top, Name);
 end;
 
-{=====}
-
 procedure TDlgEventEdit.CancelBtnClick(Sender: TObject);
 begin
   Close;
 end;
-{=====}
 
 procedure TDlgEventEdit.PopulateDialog;
 var
@@ -295,34 +335,38 @@ begin
   ResourceNameLbl.Caption := Resource.Description;
 
   { Events }
-  StartDate.Date := Event.StartTime;
-  EndDate.Date := Event.EndTime;
-  RepeatUntil.Date := Event.RepeatRangeEnd;
-  StartTime.Text := FormatDateTime('hh:mm',Event.StartTime);
-  EndTime.Text := FormatDateTime('hh:mm',Event.EndTime);
+  StartDate.Date := trunc(Event.StartTime);
+  EndDate.Date := trunc(Event.EndTime);
+  RepeatUntil.Date := trunc(Event.RepeatRangeEnd);
+ {$IFDEF NEW_TIME_EDIT}
+  StartTime.Time := frac(Event.StartTime);
+  EndTime.Time := frac(Event.EndTime);
+ {$ELSE}
+  StartTime.Text := FormatDateTime('hh:nn', Event.StartTime);
+  EndTime.Text := FormatDateTime('hh:nn', Event.EndTime);
+ {$ENDIF}
 
-  StartTimeChange(Self);
   CBAllDay.Checked := Event.AllDayEvent;
-  AlarmWavPath := Event.AlarmWavPath;
-
+  AlarmWavPath := Event.DingPath;
 
   StartDate.Enabled := not CBAllDay.Checked;
   EndDate.Enabled := not CBAllDay.Checked;
-  EndTime.Enabled := not CBAllDay.Checked;
   StartTime.Enabled := not CBAllDay.Checked;
+  EndTime.Enabled := not CBAllDay.Checked;
 
   DescriptionEdit.Text := Event.Description;
-  NotesMemo.Text := Event.Note;
+  LocationEdit.Text := Event.Location;
+  NotesMemo.Text := Event.Notes;
   AlarmSet.Checked := Event.AlarmSet;
   AlarmSetClick(Self);
   if not Event.AlarmSet then
     AlarmAdvance.Text := '15'
   else
-    AlarmAdvance.Text := IntToStr(Event.AlarmAdv);
-  AlarmAdvType.ItemIndex := Ord(Event.AlarmAdvType);
+    AlarmAdvance.Text := IntToStr(Event.AlarmAdvance);
+  AlarmAdvanceType.ItemIndex := Ord(Event.AlarmAdvanceType);
   RecurringType.ItemIndex := Ord(Event.RepeatCode);
   RecurringTypeChange(Self);
-  FCustomInterval.Text := IntToStr(Event.CustInterval);
+  CustomInterval.Text := IntToStr(Event.CustomInterval);
 
   Category.Items.Clear;
 
@@ -332,118 +376,42 @@ begin
 
   Category.ItemIndex := Event.Category;
 
-  FLastEndTime := Event.EndTime;                                         
+  FLastEndTime := Event.EndTime;
 end;
-{=====}
 
 procedure TDlgEventEdit.DePopulateDialog;
 begin
   { Events }
+ {$IFDEF NEW_TIME_EDIT}
+  Event.StartTime := StartDate.Date + StartTime.Time;
+  Event.EndTime := EndDate.Date + EndTime.Time;
+ {$ELSE}
   Event.StartTime := StartDate.Date + StrToTime(StartTime.Text);
   Event.EndTime := EndDate.Date + StrToTime(EndTime.Text);
+ {$ENDIF}
   Event.RepeatRangeEnd := RepeatUntil.Date;
   Event.Description := DescriptionEdit.Text;
-  Event.Note := NotesMemo.Text;
+  Event.Location := LocationEdit.Text;
+  Event.Notes := NotesMemo.Text;
   Event.Category := Category.ItemIndex;
   Event.AlarmSet := AlarmSet.Checked;
-  Event.AlarmAdv := StrToIntDef(AlarmAdvance.Text, 0);
-  Event.AlarmAdvType := TVpAlarmAdvType(AlarmAdvType.ItemIndex);
+  Event.AlarmAdvance := StrToIntDef(AlarmAdvance.Text, 0);
+  Event.AlarmAdvanceType := TVpAlarmAdvType(AlarmAdvanceType.ItemIndex);
   Event.RepeatCode := TVpRepeatType(RecurringType.ItemIndex);
-  Event.CustInterval := StrToIntDef(FCustomInterval.Text, 0);
+  Event.CustomInterval := StrToIntDef(CustomInterval.Text, 0);
   Event.AllDayEvent := CBAllDay.Checked;
-  Event.AlarmWavPath := AlarmWavPath;
+  Event.DingPath := AlarmWavPath;
 end;
-{=====}
-
-procedure TDlgEventEdit.StartDateChange(Sender: TObject);
-begin
-  if StartDate.Date > EndDate.Date then
-    EndDate.Date := StartDate.Date;
-end;
-{=====}
-
-procedure TDlgEventEdit.EndDateChange(Sender: TObject);
-begin
-  if StartDate.Date > EndDate.Date then
-    StartDate.Date := EndDate.Date;
-end;
-{=====}
-
-procedure TDlgEventEdit.StartTimeChange(Sender: TObject);
-var
-  ST: TDateTime;
-begin
-  { Verify the value is valid }
-  try
-    ST := StrToTime(StartTime.Text);
-  except
-    StartTime.Color := clRed;
-    if Visible then
-      StartTime.SetFocus;
-    Exit;
-  end;
-  StartTime.Color := clWindow;
-
-  { if the end time is less than the start time then change the end time to }
-  { follow the start time by 30 minutes }
-  if ST > StrToTime(EndTime.Text) then begin
-    if TimeFormat = tf24Hour then
-      EndTime.Text := FormatDateTime ('h:mm',
-                                      ST + (30/MinutesInDay))
-    else
-      EndTime.Text := FormatDateTime ('hh:mm AM/PM',
-                                      ST + (30/MinutesInDay));
-  end;
-
-end;
-{=====}
-
-procedure TDlgEventEdit.EndTimeChange(Sender: TObject);
-
-  function IsMidnight (ATime : TDateTime) : Boolean;                     
-  begin                                                                  
-    Result := ATime = Trunc (ATime);                                     
-  end;                                                                   
-
-var                                                                      
-  ET: TDateTime;                                                         
-
-begin
-  { Verify the value is valid }
-  try
-    ET := StrToTime (EndTime.Text);
-    if (IsMidnight (ET)) and (not IsMidnight (FLastEndTime)) then        
-      EndDate.Date := EndDate.Date + 1                                   
-    else if (not IsMidnight (ET)) and (IsMidnight (FLastEndTime)) then   
-      EndDate.Date := EndDate.Date - 1;                                  
-
-    FLastEndTime := ET;                                                  
-  except
-    EndTime.Color := clRed;
-    EndTime.SetFocus;
-    Exit;
-  end;
-  EndTime.Color := clWindow;
-
-  { if the end time is less than the start time then change the start time to }
-  { precede the end time by 30 minutes }
-  if ET < StrToTime(StartTime.Text) then begin
-    if TimeFormat = tf24Hour then
-      StartTime.Text := FormatDateTime ('h:mm',
-                                        ET - (30/MinutesInDay))
-    else
-      StartTime.Text := FormatDateTime ('h:mm AM/PM',
-                                        ET - (30/MinutesInDay));
-  end;
-end;
-{=====}
 
 procedure TDlgEventEdit.PopLists;
+{$IFNDEF NEW_TIME_EDIT}
 var
   StringList: TStringList;
   I, Hour, Minute: Integer;
   MinStr, AMPMStr: string;
+{$ENDIF}
 begin
+ {$IFNDEF NEW_TIME_EDIT}      // No longer needed for Lazarus using a TTimeEdit now.
  { Time Lists }
   StringList := TStringList.Create;
   try
@@ -458,7 +426,7 @@ begin
       Hour := (Minute div 15) div 4;
       MinStr := IntToStr(Minute mod 60);
       if MinStr = '0' then MinStr := '00';
-      if TimeFormat = tf24Hour then                                      
+      if TimeFormat = tf24Hour then
         StringList.Add(IntToStr(Hour) + ':' + MinStr)
       else begin
         if Hour > 12 then Hour := Hour - 12;
@@ -466,14 +434,15 @@ begin
         StringList.Add(IntToStr(Hour) + ':' + MinStr + AMPMStr);
       end;
     end;
-    StartTime.Items.Assign(StringList);
-    StartTime.ItemIndex := 0;
+    PlaceholderStartTime.Items.Assign(StringList);
+    PlaceholderStartTime.ItemIndex := 0;
 
-    EndTime.Items.Assign(StringList);
-    EndTime.ItemIndex := 0;
+    EndTimePlaceholder.Items.Assign(StringList);
+    EndTimePlaceholder.ItemIndex := 0;
   finally
     StringList.Free;
   end;
+ {$ENDIF}
 
   { RecurringList }
   RecurringType.Items.Add(RSNone);
@@ -487,10 +456,10 @@ begin
   RecurringType.ItemIndex := 0;
 
   { Alarm Advance Type }
-  AlarmAdvType.Items.Add(RSMinutes);
-  AlarmAdvType.Items.Add(RSHours);
-  AlarmAdvType.Items.Add(RSDays);
-  AlarmAdvType.ItemIndex := 0;
+  AlarmAdvanceType.Items.Add(RSMinutes);
+  AlarmAdvanceType.Items.Add(RSHours);
+  AlarmAdvanceType.Items.Add(RSDays);
+  AlarmAdvanceType.ItemIndex := 0;
 end;
 {=====}
 
@@ -500,6 +469,7 @@ begin
   CancelBtn.Caption := RSCancelBtn;
   AppointmentGroupBox.Caption := RSAppointmentGroupBox;
   DescriptionLbl.Caption := RSDescriptionLbl;
+  LocationLbl.Caption := RSLocationLbl;
   CategoryLbl.Caption := RSCategoryLbl;
   StartTimeLbl.Caption := RSStartTimeLbl;
   EndTimeLbl.Caption := RSEndTimeLbl;
@@ -517,11 +487,12 @@ var
   Str: string;
 begin
   if AAVerifying then exit;
+
   AAVerifying := true;
   { Don't allow non numeric values. }
   Str := AlarmAdvance.Text;
   I := Length(Str);
-  if (Str[I] > #57) or (Str[I] < #48) then
+  if (Str[I] > '9') or (Str[I] < '0') then
     Delete(Str, I, 1);
   AlarmAdvance.Text := Str;
   AAVerifying := false;
@@ -531,16 +502,15 @@ begin
 end;
 {=====}
 
+{ Inc or Dec AlarmAdvance according to which button was pressed }
 procedure TDlgEventEdit.AdvanceUpDownClick(Sender: TObject; Button: TUDBtnType);
 begin
-  { Inc or Dec AlarmAdvance according to which button was pressed }
-{  case Button of
+  case Button of
     btNext:
       AlarmAdvance.Text := IntToStr(StrToIntDef(AlarmAdvance.Text, 0) + 1);
     btPrev:
       AlarmAdvance.Text := IntToStr(StrToIntDef(AlarmAdvance.Text, 0) - 1);
-  end;}
-  AlarmAdvance.Text := IntToStr(AdvanceUpDown.Position);
+  end;
 end;
 {=====}
 
@@ -552,13 +522,13 @@ begin
   { Don't allow non numeric values. }
   if CIVerifying then Exit;
   CIVerifying := true;
-  Str := FCustomInterval.Text;
+  Str := CustomInterval.Text;
   for I := 1 to Length(Str) do
-    if (Ord(Str[I]) in [48..57]) then
+    if (Str[I] in ['0'..'9']) then
       Continue
     else
       Delete(Str, I, 1);
-  FCustomInterval.Text := Str;
+  CustomInterval.Text := Str;
   if Str <> '' then
     IntervalUpDown.Position := StrToInt(Str);
   CIVerifying := false;
@@ -567,37 +537,36 @@ end;
 
 procedure TDlgEventEdit.IntervalUpDownClick(Sender: TObject; Button: TUDBtnType);
 begin
-  FCustomInterval.Text := IntToStr(IntervalUpDown.Position);
+  Unused(Button);
+  CustomInterval.Text := IntToStr(IntervalUpDown.Position);
 end;
 {=====}
 
 procedure TDlgEventEdit.RecurringTypeChange(Sender: TObject);
 begin
-  if (RecurringType.ItemIndex > 0)
-  and (RepeatUntil.Date <= StartDate.Date)
-  then
+  if (RecurringType.ItemIndex > 0) and (RepeatUntil.Date <= StartDate.Date) then
     RepeatUntil.Date := StartDate.Date + 365;
 
   RecurrenceEndsLbl.Enabled := (RecurringType.ItemIndex > 0);
   RepeatUntil.Enabled := RecurrenceEndsLbl.Enabled;
 
-  FCustomInterval.Enabled := RecurringType.ItemIndex = 7;
-  IntervalLbl.Enabled := FCustomInterval.Enabled;
-  IntervalUpDown.Enabled := FCustomInterval.Enabled;
-  if FCustomInterval.Enabled then begin
-    FCustomInterval.Text := IntToStr(IntervalUpDown.Position);
+  CustomInterval.Enabled := RecurringType.ItemIndex = 7;
+  IntervalLbl.Enabled := CustomInterval.Enabled;
+  IntervalUpDown.Enabled := CustomInterval.Enabled;
+  if CustomInterval.Enabled then begin
+    CustomInterval.Text := IntToStr(IntervalUpDown.Position);
     if Visible then
-      FCustomInterval.SetFocus;
+      CustomInterval.SetFocus;
   end;
-
 end;
 {=====}
 
 procedure TDlgEventEdit.AlarmSetClick(Sender: TObject);
 begin
   AlarmAdvance.Enabled  := AlarmSet.Checked;
-  AlarmAdvType.Enabled  := AlarmSet.Checked;
+  AlarmAdvanceType.Enabled  := AlarmSet.Checked;
   AdvanceUpDown.Enabled := AlarmSet.Checked;
+  SoundFinderBtn.Enabled := AlarmSet.Checked;
   Event.SnoozeTime := 0.0;
 end;
 {=====}
@@ -605,37 +574,119 @@ end;
 procedure TDlgEventEdit.CBAllDayClick(Sender: TObject);
 begin
   StartDate.Enabled := not CBAllDay.Checked;
+  StartTime.Enabled := not CBAllDay.Checked;
   EndDate.Enabled := not CBAllDay.Checked;
   EndTime.Enabled := not CBAllDay.Checked;
-  StartTime.Enabled := not CBAllDay.Checked;
 end;
 {=====}
 
-procedure TDlgEventEdit.SpeedButton1Click(Sender: TObject);
+procedure TDlgEventEdit.SoundFinderBtnClick(Sender: TObject);
+var
+  SoundFinder: TfrmSoundDialog;
 begin
-  ExecuteSoundFinder(AlarmWavPath);
+  SoundFinder := TFrmSoundDialog.Create(nil);
+  try
+    SoundFinder.DingPath := AlarmWavPath;
+    SoundFinder.MediaFolder := Datastore.MediaFolder;
+    SoundFinder.OnPlaySound := DoPlaySound;
+    SoundFinder.Populate;
+    if SoundFinder.ShowModal = mrOK then begin
+      if SoundFinder.CBDefault.Checked then
+        AlarmWavPath := ''
+      else
+        AlarmWavPath := SoundFinder.GetSelectedFilename;
+    end;
+  finally
+    SoundFinder.Free;
+  end;
+end;
+{=====}
+
+procedure TDlgEventEdit.DoPlaySound(Sender: TObject; const AWavFile: String;
+  AMode: TVpPlaySoundMode);
+begin
+  if DataStore <> nil then
+    Datastore.PlaySound(AWavFile, AMode);
 end;
 {=====}
 
 procedure TDlgEventEdit.FormShow(Sender: TObject);
 begin
+  PositionControls;
   DescriptionEdit.SetFocus;
+ {$IFNDEF MSWINDOWS}
+  if not Assigned(FDatastore.OnPlaySound) then
+    SoundFinderBtn.Hide;
+ {$ENDIF}
 end;
 {=====}
 
+procedure TDlgEventEdit.PositionControls;
+var
+  w: Integer;
+  cnv: TControlCanvas;
+  editHeight: Integer;
+begin
+  editHeight := startDate.Height;
+
+  startDate.ButtonWidth := editHeight;
+  endDate.ButtonWidth := editHeight;
+ {$IFDEF NEW_TIME_EDIT}
+  StartTime.ButtonWidth := editHeight;
+  EndTime.ButtonWidth := editHeight;
+ {$ENDIF}
+  RepeatUntil.ButtonWidth := editHeight;
+
+  cnv := TControlCanvas.Create;
+  try
+    cnv.Control := StartDate;
+    cnv.Font.Assign(startDate.Font);
+    w := cnv.TextWidth(FormatDateTime('  dd. mm. yyyy  ', EncodeDate(2000,12,30)));
+    Startdate.Width := w + StartDate.ButtonWidth;
+    EndDate.Width := StartDate.Width;
+    StartTime.Width := StartDate.Width;
+    EndTime.Width := StartDate.Width;
+  finally
+    cnv.Free;
+  end;
+  RepeatUntil.Width := StartDate.Width;
+  AlarmAdvance.Width := AdvanceUpDown.Left - 2 - AlarmAdvance.Left;
+  AlarmAdvanceType.Width := StartTime.Width;
+
+  SoundFinderBtn.Width := MulDiv(SoundFinderBtn.Height, 3, 2);
+
+  AlignOKCancel(OKBtn, CancelBtn, ButtonPanel);
+
+  {$IFDEF NEW_ICONS}
+  LoadGlyphFromRCDATA(SoundFinderBtn.Glyph, 'VpSpeaker', 16, 24, 32);
+
+  LoadGlyphFromRCDATA(StartDate.Button.Glyph, 'VpDateEdit', 16, 24, 32);
+  LoadGlyphFromRCDATA(EndDate.Button.Glyph, 'VpDateEdit', 16, 24, 32);
+  LoadGlyphFromRCDATA(RepeatUntil.Button.Glyph, 'VpDateEdit', 16, 24, 32);
+ {$IFDEF NEW_TIME_EDIT}
+  LoadGlyphFromRCDATA(StartTime.Button.Glyph, 'VpTimeEdit', 16, 24, 32);
+  LoadGlyphFromRCDATA(EndTime.Button.Glyph, 'VpTimeEdit', 16, 24, 32);
+ {$ENDIF}
+
+  LoadImageFromRCDATA(imgClock, 'VpDateTime', 24, 32, 48);
+  LoadImageFromRCDATA(imgRecurring, 'VpRecurringEvent', 24, 32, 48);
+  LoadImageFromRCDATA(imgAlarm, 'VpReminder', 24, 32, 48);
+  {$ENDIF}
+end;
+
+
 { TVpEventEditDialog }
 
-constructor TVpEventEditDialog.Create(AOwner : TComponent);
+constructor TVpEventEditDialog.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FPlacement.Position := mpCenterTop;
   FPlacement.Height := 415;
-  FPlacement.Width  := 710;
+  FPlacement.Width := 710;
 end;
 {=====}
 
-function TVpEventEditDialog.Execute(Event: TVpEvent;
-  TimeFormat: TVpTimeFormat = tf12Hour): Boolean;
+function TVpEventEditDialog.Execute(Event: TVpEvent): Boolean;
 var
   DlgEventEdit: TDlgEventEdit;
 begin
@@ -644,6 +695,7 @@ begin
   try
     DoFormPlacement(DlgEventEdit);
     SetFormCaption(DlgEventEdit, Event.Description, RSDlgEventEdit);
+    DlgEventEdit.Datastore := Datastore;
     DlgEventEdit.Event := Event;
     DlgEventEdit.TimeFormat := FTimeFormat;
     DlgEventEdit.Resource := DataStore.Resource;
@@ -653,7 +705,7 @@ begin
     result := (DlgEventEdit.ReturnCode = rtCommit);
     if Result then begin
       DlgEventEdit.DePopulateDialog;
-      DataStore.PostEvents;
+//      DataStore.PostEvents;
     end;
   finally
     DlgEventEdit.Release;
@@ -661,72 +713,21 @@ begin
 end;
 {=====}
 
-function TVpEventEditDialog.AddNewEvent(StartTime, EndTime: TDateTime): Boolean;
+function TVpEventEditDialog.AddNewEvent(PlaceholderStartTime, EndTimePlaceholder: TDateTime): Boolean;
 begin
   Result := false;
   if DataStore <> nil then begin
     ceEvent := DataStore.Resource.Schedule.AddEvent(
-      DataStore.GetNextID(EventsTableName), StartTime, EndTime);
+      DataStore.GetNextID(EventsTableName),
+      PlaceholderStartTime, EndTimePlaceholder
+    );
     if ceEvent <> nil then begin
       Result := Execute(ceEvent);
-      if (not Result) or (ceEvent = nil) then
+      if (not Result) then
         ceEvent.Free;
     end;
   end;
 end;
-{=====}
-
-procedure TDlgEventEdit.StartTimeExit(Sender: TObject);                  
-var                                                                      
-  ST : TDateTime;                                                        
-
-begin                                                                    
-  { Verify the value is valid                                          } 
-  try                                                                    
-    ST := StartDate.Date +
-          StrToTime (StartTime.Text);
-  except                                                                 
-    StartTime.Color := clRed;                                            
-    StartTime.SetFocus;                                                  
-    Exit;                                                                
-  end;                                                                   
-  StartTime.Color := clWindow;                                           
-
-  { if the end time is less than the start time then change the end    } 
-  {  time to  follow the start time by 30 minutes                      } 
-
-  if ST > EndDate.Date +
-          StrToTime (EndTime.Text) then begin
-  EndTime.Text := FormatDateTime('hh:mm',ST + (30/MinutesInDay));
-  end;
-end;                                                                     
-
-procedure TDlgEventEdit.EndTimeExit(Sender: TObject);                    
-var                                                                      
-  ET : TDateTime;                                                        
-
-begin                                                                    
-  { Verify the value is valid                                          } 
-  try                                                                    
-    ET := EndDate.Date + StrToTime (EndTime.Text);
-  except                                                                 
-    EndTime.Color := clRed;                                              
-    EndTime.SetFocus;                                                    
-    Exit;                                                                
-  end;                                                                   
-  EndTime.Color := clWindow;                                             
-
-  { if the end time is less than the start time then change the        } 
-  { start time to precede the end time by 30 minutes                   } 
-
-  if ET < StartDate.Date +
-          StrToTime (StartTime.Text) then begin
-  StartTime.Text := FormatDateTime('hh:mm',ET- (30/MinutesInDay));
-  end;
-end;                                                                     
-
-initialization
-  {$I vpevnteditdlg.lrs}
 
 end.
  

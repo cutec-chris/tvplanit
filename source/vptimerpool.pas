@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpTimerPool;
   {-Timer Pool Class}
@@ -35,11 +35,12 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,
+  LMessages, LCLProc, LCLType, LCLIntf,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Classes, Messages, SysUtils, Forms, VpException;
+  Classes, SysUtils, Forms,
+  VpException;
 
 type
   TVpTimerTriggerEvent =
@@ -93,7 +94,7 @@ type
       {-returns the internal list index corresponding to the trigger handle}
     procedure tpSortTriggers;
       {-sorts the internal list of timer trigger event records}
-    procedure tpTimerWndProc(var Msg : TMessage);
+    procedure tpTimerWndProc(var Msg: {$IFDEF DELPHI}TMessage{$ELSE}TLMessage{$ENDIF});
       {-window procedure to catch timer messages}
     procedure tpUpdateTimer;
       {-re-create the windows timer with a new timer interval}
@@ -169,7 +170,11 @@ begin
   tpList := TList.Create;
 
   {allocate a window handle for the timer}
-//TODO: tpHandle := {$IFDEF VERSION6}Classes.{$ENDIF}AllocateHWnd(tpTimerWndProc);
+ {$IFDEF DELPHI}
+  tpHandle := {$IFDEF VERSION6}Classes.{$ENDIF}AllocateHWnd(tpTimerWndProc);
+ {$ELSE}
+  // ToDo: tpHandle := AllocateHWnd(tpTimerWndProc);
+ {$ENDIF}
 end;
 
 destructor TVpTimerPool.Destroy;
@@ -189,7 +194,11 @@ begin
   tpList := nil;
 
   {deallocate our window handle}
-//TODO:  {$IFDEF VERSION6}Classes.{$ENDIF}DeallocateHWnd(tpHandle);
+ {$IFDEF DELPHI}
+  {$IFDEF VERSION6}Classes.{$ENDIF}DeallocateHWnd(tpHandle);
+ {$ELSE}
+  // ToDo: DeallocateHWnd(tpHandle);
+ {$ENDIF}
 
   inherited Destroy;
 end;
@@ -606,7 +615,7 @@ begin
   until Done;
 end;
 
-procedure TVpTimerPool.tpTimerWndProc(var Msg : TMessage);
+procedure TVpTimerPool.tpTimerWndProc(var Msg: {$IFDEF DELPHI}TMessage{$ELSE}TLMessage{$ENDIF});
   {-window procedure to catch timer messages}
 begin
   with Msg do

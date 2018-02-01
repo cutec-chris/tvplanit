@@ -1,60 +1,69 @@
 object TaskEditForm: TTaskEditForm
-  Left = 468
-  Height = 340
-  Top = 333
-  Width = 546
+  Left = 284
+  Height = 430
+  Top = 231
+  Width = 547
   HorzScrollBar.Page = 545
   VertScrollBar.Page = 339
   Caption = 'TaskEditForm'
-  ClientHeight = 340
-  ClientWidth = 546
-  Constraints.MinHeight = 340
-  Constraints.MinWidth = 545
-  Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  ClientHeight = 430
+  ClientWidth = 547
   OnCreate = FormCreate
   OnShow = FormShow
   Position = poScreenCenter
-  object Panel2: TPanel
-    Height = 37
-    Top = 303
-    Width = 546
+  LCLVersion = '1.6.4.0'
+  object ButtonPanel: TPanel
+    Left = 0
+    Height = 33
+    Top = 397
+    Width = 547
     Align = alBottom
+    AutoSize = True
     BevelOuter = bvNone
-    ClientHeight = 37
-    ClientWidth = 546
-    TabOrder = 0
+    ClientHeight = 33
+    ClientWidth = 547
+    TabOrder = 1
     object ResourceNameLbl: TLabel
-      Left = 8
-      Height = 16
-      Top = 12
-      Width = 100
-      AutoSize = False
+      AnchorSideLeft.Control = ButtonPanel
+      AnchorSideTop.Control = ButtonPanel
+      AnchorSideTop.Side = asrCenter
+      Left = 4
+      Height = 15
+      Top = 9
+      Width = 88
+      BorderSpacing.Left = 4
       Caption = 'Resource Name'
       Font.CharSet = ANSI_CHARSET
       Font.Color = clMaroon
-      Font.Height = -13
-      Font.Name = 'Tahoma'
       Font.Style = [fsBold]
       ParentColor = False
+      ParentFont = False
     end
     object OKBtn: TButton
-      Left = 389
+      Left = 435
       Height = 25
-      Top = 8
-      Width = 75
-      Anchors = [akTop, akRight]
+      Top = 4
+      Width = 42
+      Align = alRight
+      AutoSize = True
+      BorderSpacing.Top = 4
+      BorderSpacing.Right = 4
+      BorderSpacing.Bottom = 4
       Caption = 'OK'
       Default = True
       OnClick = OKBtnClick
       TabOrder = 0
     end
     object CancelBtn: TButton
-      Left = 467
+      Left = 481
       Height = 25
-      Top = 8
-      Width = 75
-      Anchors = [akTop, akRight]
+      Top = 4
+      Width = 62
+      Align = alRight
+      AutoSize = True
+      BorderSpacing.Top = 4
+      BorderSpacing.Right = 4
+      BorderSpacing.Bottom = 4
       Cancel = True
       Caption = 'Cancel'
       OnClick = CancelBtnClick
@@ -62,61 +71,79 @@ object TaskEditForm: TTaskEditForm
     end
   end
   object PageControl1: TPageControl
-    Height = 303
-    Width = 546
+    Left = 0
+    Height = 397
+    Top = 0
+    Width = 547
     TabStop = False
     ActivePage = tabTask
     Align = alClient
     TabIndex = 0
-    TabOrder = 1
+    TabOrder = 0
     object tabTask: TTabSheet
       Caption = 'Task'
-      ClientHeight = 277
-      ClientWidth = 538
+      ClientHeight = 369
+      ClientWidth = 539
       object DueDateLbl: TLabel
-        Left = 52
-        Height = 14
-        Top = 44
-        Width = 49
+        AnchorSideLeft.Control = imgCalendar
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = DueDateEdit
+        AnchorSideTop.Side = asrCenter
+        Left = 48
+        Height = 15
+        Top = 68
+        Width = 50
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
         Caption = 'Due date:'
+        FocusControl = DueDateEdit
         ParentColor = False
       end
-      object CreatedOnLbl: TLabel
-        Left = 52
-        Height = 14
-        Top = 69
-        Width = 59
+      object LblCreatedOn: TLabel
+        AnchorSideLeft.Control = DueDateLbl
+        AnchorSideTop.Control = DueDateEdit
+        AnchorSideTop.Side = asrBottom
+        Left = 48
+        Height = 15
+        Top = 91
+        Width = 61
+        BorderSpacing.Top = 4
         Caption = 'Created on:'
         ParentColor = False
       end
-      object CompletedOnLbl: TLabel
-        Left = 313
-        Height = 14
-        Top = 69
-        Width = 71
+      object LblCompletedOn: TLabel
+        AnchorSideLeft.Control = CbPriority
+        AnchorSideTop.Control = LblCreatedOn
+        Left = 358
+        Height = 15
+        Top = 91
+        Width = 79
+        BorderSpacing.Right = 4
         Caption = 'Completed on:'
         ParentColor = False
       end
       object Bevel1: TBevel
+        AnchorSideTop.Control = CbCategory
+        AnchorSideTop.Side = asrBottom
         Left = 4
         Height = 2
-        Top = 32
-        Width = 523
+        Top = 58
+        Width = 529
         Anchors = [akTop, akLeft, akRight]
-      end
-      object Bevel2: TBevel
-        Left = 4
-        Height = 2
-        Top = 88
-        Width = 523
-        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Top = 4
+        Shape = bsTopLine
       end
       object imgCalendar: TImage
+        AnchorSideLeft.Control = tabTask
+        AnchorSideTop.Control = Bevel1
+        AnchorSideTop.Side = asrBottom
         Left = 8
         Height = 32
-        Top = 38
+        Top = 64
         Width = 32
         AutoSize = True
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 4
         Picture.Data = {
           07544269746D6170360C0000424D360C00000000000036000000280000002000
           0000200000000100180000000000000C00000000000000000000000000000000
@@ -218,14 +245,18 @@ object TaskEditForm: TTaskEditForm
           D4C8D0D4C8D0D4C8D0D4C8D0D4C8D0D4C8D0D4C8D0D4C8D0D4C8D0D4C8D0D4C8
           D0D4
         }
-        Transparent = False
+        Transparent = True
       end
       object imgCompleted: TImage
-        Left = 272
+        AnchorSideLeft.Control = LblPriority
+        AnchorSideTop.Control = Bevel1
+        AnchorSideTop.Side = asrBottom
+        Left = 309
         Height = 32
-        Top = 38
+        Top = 64
         Width = 32
         AutoSize = True
+        BorderSpacing.Top = 4
         Picture.Data = {
           07544269746D617076020000424D760200000000000076000000280000002000
           0000200000000100040000000000000200000000000000000000100000001000
@@ -249,40 +280,154 @@ object TaskEditForm: TTaskEditForm
           3333333333333333333333333333330033333333333333333333333333333333
           3333
         }
-        Transparent = False
+        Transparent = True
       end
       object DescriptionEdit: TEdit
+        AnchorSideLeft.Control = tabTask
+        AnchorSideTop.Control = tabTask
+        AnchorSideRight.Control = tabTask
+        AnchorSideRight.Side = asrBottom
         Left = 4
-        Height = 21
-        Top = 5
-        Width = 523
+        Height = 23
+        Top = 4
+        Width = 531
         Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Left = 4
+        BorderSpacing.Top = 4
+        BorderSpacing.Right = 4
         MaxLength = 255
         OnChange = OnChange
         TabOrder = 0
         Text = 'DescriptionEdit'
       end
-      object CompleteCB: TCheckBox
-        Left = 313
+      object CbComplete: TCheckBox
+        AnchorSideLeft.Control = CbPriority
+        AnchorSideTop.Control = DueDateEdit
+        AnchorSideTop.Side = asrCenter
+        Left = 358
         Height = 19
-        Top = 41
-        Width = 70
+        Top = 66
+        Width = 72
+        BorderSpacing.Right = 4
         Caption = 'Complete'
         TabOrder = 2
       end
       object DetailsMemo: TMemo
+        AnchorSideLeft.Control = tabTask
+        AnchorSideTop.Control = LblCreatedOn
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = tabTask
+        AnchorSideRight.Side = asrBottom
+        AnchorSideBottom.Control = tabTask
+        AnchorSideBottom.Side = asrBottom
         Left = 4
-        Height = 148
-        Top = 96
-        Width = 523
+        Height = 255
+        Top = 110
+        Width = 531
         Anchors = [akTop, akLeft, akRight, akBottom]
+        BorderSpacing.Left = 4
+        BorderSpacing.Top = 4
+        BorderSpacing.Right = 4
+        BorderSpacing.Bottom = 4
+        Constraints.MinHeight = 200
         Lines.Strings = (
           'DetailsMemo'
         )
         MaxLength = 1024
         OnChange = OnChange
         ScrollBars = ssVertical
+        TabOrder = 3
+      end
+      object DueDateEdit: TDateEdit
+        AnchorSideLeft.Control = DueDateLbl
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = Bevel1
+        AnchorSideTop.Side = asrBottom
+        Left = 106
+        Height = 23
+        Top = 64
+        Width = 110
+        CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
+        DateOrder = doNone
+        ButtonWidth = 23
+        BorderSpacing.Top = 4
+        NumGlyphs = 1
+        MaxLength = 0
         TabOrder = 1
+        Text = 'DueDateEdit'
+      end
+      object LblCategory: TLabel
+        AnchorSideTop.Control = CbCategory
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = CbCategory
+        Left = 47
+        Height = 15
+        Top = 35
+        Width = 51
+        Anchors = [akTop, akRight]
+        BorderSpacing.Right = 8
+        Caption = 'Category:'
+        FocusControl = CbCategory
+        ParentColor = False
+      end
+      object CbCategory: TComboBox
+        AnchorSideLeft.Control = DueDateEdit
+        AnchorSideTop.Control = DescriptionEdit
+        AnchorSideTop.Side = asrBottom
+        Left = 106
+        Height = 23
+        Top = 31
+        Width = 139
+        BorderSpacing.Top = 4
+        ItemHeight = 15
+        ItemIndex = 0
+        Items.Strings = (
+          'Business'
+          'Clients'
+          'Family'
+          'Other'
+          'Personal'
+        )
+        Style = csDropDownList
+        TabOrder = 4
+        Text = 'Business'
+      end
+      object LblPriority: TLabel
+        AnchorSideLeft.Control = CbCategory
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = CbPriority
+        AnchorSideTop.Side = asrCenter
+        Left = 309
+        Height = 15
+        Top = 35
+        Width = 41
+        BorderSpacing.Left = 64
+        Caption = 'Priority:'
+        FocusControl = CbPriority
+        ParentColor = False
+      end
+      object CbPriority: TComboBox
+        AnchorSideLeft.Control = LblPriority
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = DescriptionEdit
+        AnchorSideTop.Side = asrBottom
+        Left = 358
+        Height = 23
+        Top = 31
+        Width = 120
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 4
+        BorderSpacing.Right = 4
+        ItemHeight = 15
+        ItemIndex = 1
+        Items.Strings = (
+          'low'
+          'normal'
+          'high'
+        )
+        Style = csDropDownList
+        TabOrder = 5
+        Text = 'normal'
       end
     end
   end

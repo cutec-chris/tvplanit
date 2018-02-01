@@ -27,7 +27,7 @@
 {* ***** END LICENSE BLOCK *****                                              *}
 
 {.$DEFINE RUNTIMETEST}
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpFlxDsEd1;
   { Flexible DataStore ComponentEditor }
@@ -36,23 +36,36 @@ unit VpFlxDsEd1;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  {$IFNDEF RUNTIMETEST}
-  {$IFDEF VERSION6} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF}
-  {$ENDIF} {RUNTIMETEST}
-  ExtCtrls, StdCtrls, Db, DBTables, VpData, VpFlxDS, ComCtrls, Buttons;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  (*
+ {$IFNDEF RUNTIMETEST}
+ {$IFDEF LCL}
+  propedits, componenteditors, FormEditingIntf, lclintf, IDEIntf,
+ {$ELSE}
+  Windows, Messages,
+ {$IFDEF VERSION6} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF}, DBTables,
+ {$ENDIF}
+ {$ENDIF} {RUNTIMETEST}
+ *)
+  ExtCtrls, StdCtrls, Db, ComCtrls, Buttons,
+  VpFlxDS;
 
 type
+
+  { TfrmFieldMapper }
+
   TfrmFieldMapper = class(TForm)
-    Panel1: TPanel;
-    Button2: TButton;
+    Bevel2: TBevel;
+    BtnCancel: TButton;
+    btnAddAll: TButton;
+    ButtonPanel: TPanel;
+    BtnOK: TButton;
     PageControl1: TPageControl;
     TabSheet1: TTabSheet;
-    Bevel1: TBevel;
-    Label2: TLabel;
-    Label5: TLabel;
-    Label6: TLabel;
-    Label1: TLabel;
+    lblDBFieldsAvail: TLabel;
+    lblFieldMappings: TLabel;
+    lblVPFieldsAvail: TLabel;
+    lblDataset: TLabel;
     DatasetFieldLB: TListBox;
     VPFieldLB: TListBox;
     FieldMappingsLB: TListBox;
@@ -60,27 +73,29 @@ type
     DatasetCombo: TComboBox;
     btnAddMapping: TBitBtn;
     btnClearMappings: TButton;
-    procedure FormShow(Sender: TObject);
-    procedure DatasetComboChange(Sender: TObject);
-    procedure DBFieldSelected(Sender: TObject);
-    procedure DatasetFieldLBKeyPress(Sender: TObject; var Key: Char);
-    procedure VpFieldSelected(Sender: TObject);
-    procedure VPFieldLBKeyPress(Sender: TObject; var Key: Char);
+    procedure btnAddAllClick(Sender: TObject);
     procedure btnAddMappingClick(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
-    procedure Button5Click(Sender: TObject);
-    procedure btnDeleteMappingClick(Sender: TObject);
     procedure btnClearMappingsClick(Sender: TObject);
+    procedure btnDeleteMappingClick(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
+    procedure DatasetComboChange(Sender: TObject);
+    procedure DatasetFieldLBKeyPress(Sender: TObject; var Key: Char);
+    procedure DBFieldSelected(Sender: TObject);
     procedure FieldMappingsLBClick(Sender: TObject);
     procedure FieldMappingsLBKeyPress(Sender: TObject; var Key: Char);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormShow(Sender: TObject);
+    procedure VPFieldLBKeyPress(Sender: TObject; var Key: Char);
+    procedure VpFieldSelected(Sender: TObject);
   private
-    DSResActive    : Boolean;
-    DSEventActive  : Boolean;
+    DSResActive: Boolean;
+    DSEventActive: Boolean;
     DSContactActive: Boolean;
-    DSTaskActive   : Boolean;
+    DSTaskActive: Boolean;
+    function GetSelectedFieldMappings: TCollection;
     procedure SyncObjects;
     procedure OpenDatasets;
+    procedure PositionControls;
   public
     FlexDS: TVpFlexDataStore;
     ResDS: TDataset;
@@ -88,22 +103,29 @@ type
     ContactsDS: TDataset;
     TasksDS: TDataset;
   end;
-
+              (*
 {$IFDEF RUNTIMETEST}
 procedure RuntimeTest(FlexDS: TVpFlexDataStore);
 {$ELSE}
   TVpFlexDSEditor = class(TComponentEditor)
-    procedure ExecuteVerb(Index : Integer); override;
-    function GetVerb(Index : Integer) : string; override;
-    function GetVerbCount : Integer; override;
+    procedure ExecuteVerb(Index: Integer); override;
+    function GetVerb(Index: Integer): string; override;
+    function GetVerbCount: Integer; override;
   end;
 {$ENDIF}
+                *)
 
 implementation
-{$R *.DFM}
-uses
-  vpConst;
+{$IFDEF LCL}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
+{$ENDIF}
 
+uses
+  math,
+  vpConst, VpMisc;
+  (*
 {$IFDEF RUNTIMETEST}
 { Runtime test }
 
@@ -120,16 +142,16 @@ begin
     frmFieldMapper.FlexDS := FlexDS;
 
     if FlexDS.ResourceDataSource <> nil then
-      frmFieldMapper.ResDS      := FlexDS.ResourceDataSource.DataSet;
+      frmFieldMapper.ResDS := FlexDS.ResourceDataSource.DataSet;
 
     if FlexDS.EventsDataSource <> nil then
-      frmFieldMapper.EventsDS   := FlexDS.EventsDataSource.DataSet;
+      frmFieldMapper.EventsDS := FlexDS.EventsDataSource.DataSet;
 
     if FlexDS.ContactsDataSource <> nil then
       frmFieldMapper.ContactsDS := FlexDS.ContactsDataSource.DataSet;
 
     if FlexDS.TasksDataSource <> nil then
-      frmFieldMapper.TasksDS    := FlexDS.TasksDataSource.DataSet;
+      frmFieldMapper.TasksDS := FlexDS.TasksDataSource.DataSet;
 
     frmFieldMapper.ShowModal;
 
@@ -141,60 +163,93 @@ end;
 
 {$ELSE} {RUNTIMETEST}
 
-{$IFDEF VERSION6}
-procedure MapDatabaseFields(Designer : IDesigner;
-  FlexDS : TVpFlexDataStore);
+{$IFDEF LCL}
+procedure MapDatabaseFields(Designer: TComponentEditorDesigner;
+  FlexDS: TVpFlexDataStore);
 {$ELSE}
-procedure MapDatabaseFields(Designer : IFormDesigner;
-  FlexDS : TVpFlexDataStore);
-{$ENDIF}
+{$IFDEF VERSION6}
+procedure MapDatabaseFields(Designer: TComponentEditorDesigner;;  // was: Designer : IDesigner;
+  FlexDS: TVpFlexDataStore);
+{$ELSE}
+procedure MapDatabaseFields(Designer: IFormDesigner;
+  FlexDS: TVpFlexDataStore);
+{$ENDIF}{$ENDIF}
 var
   frmFieldMapper: TfrmFieldMapper;
+  savedResourceMappings: TCollection;
+  savedContactMappings: TCollection;
+  savedEventMappings: TCollection;
+  savedTaskMappings: TCollection;
 begin
   if FlexDS = nil then
     Exit;
-  Application.CreateForm(TfrmFieldMapper, frmFieldMapper);
+
+  savedResourceMappings := TCollection.Create(TVpFieldMapping);
+  savedContactMappings := TCollection.Create(TVpFieldMapping);
+  savedEventMappings := TCollection.Create(TVpFieldMapping);
+  savedTaskMappings := TCollection.Create(TVpFieldMapping);
   try
-    frmFieldMapper.FlexDS := FlexDS;
-    if FlexDS.ResourceDataSource <> nil then
-      frmFieldMapper.ResDS      := FlexDS.ResourceDataSource.DataSet;
-    if FlexDS.EventsDataSource <> nil then
-      frmFieldMapper.EventsDS   := FlexDS.EventsDataSource.DataSet;
-    if FlexDS.ContactsDataSource <> nil then
-      frmFieldMapper.ContactsDS := FlexDS.ContactsDataSource.DataSet;
-    if FlexDS.TasksDataSource <> nil then
-      frmFieldMapper.TasksDS    := FlexDS.TasksDataSource.DataSet;
-    frmFieldMapper.ShowModal;
+    savedResourceMappings.Assign(FlexDS.ResourceMappings);
+    savedContactMappings.Assign(FlexDS.ContactMappings);
+    savedEventMappings.Assign(FlexDS.EventMappings);
+    savedTaskMappings.Assign(FlexDS.TaskMappings);
+
+    Application.CreateForm(TfrmFieldMapper, frmFieldMapper);
+    try
+      frmFieldMapper.FlexDS := FlexDS;
+      if FlexDS.ResourceDataSource <> nil then
+        frmFieldMapper.ResDS := FlexDS.ResourceDataSource.DataSet;
+      if FlexDS.EventsDataSource <> nil then
+        frmFieldMapper.EventsDS := FlexDS.EventsDataSource.DataSet;
+      if FlexDS.ContactsDataSource <> nil then
+        frmFieldMapper.ContactsDS := FlexDS.ContactsDataSource.DataSet;
+      if FlexDS.TasksDataSource <> nil then
+        frmFieldMapper.TasksDS := FlexDS.TasksDataSource.DataSet;
+      if frmFieldMapper.ShowModal <> mrOK then begin
+        FlexDS.ResourceMappings.Assign(savedResourceMappings);
+        FlexDS.ContactMappings.Assign(savedContactMappings);
+        FlexDS.EventMappings.Assign(savedEventMappings);
+        FlexDS.TaskMappings.Assign(savedTaskMappings);
+      end;
+    finally
+      frmFieldMapper.Release;
+    end;
+    Designer.Modified;
+
   finally
-    frmFieldMapper.release;
+    savedResourceMappings.Free;
+    savedContactMappings.Free;
+    savedEventMappings.Free;
+    savedTaskMappings.Free;
   end;
-  Designer.Modified;
 end;
 {=====}
 
 {*** TVpNavBarEditor ***}
 
-procedure TVpFlexDSEditor.ExecuteVerb(Index : Integer);
+procedure TVpFlexDSEditor.ExecuteVerb(Index: Integer);
 begin
   if Index = 0 then
     MapDatabaseFields(Designer, (Component as TVpFlexDataStore));
 end;
 
-function TVpFlexDSEditor.GetVerb(Index : Integer) : string;
+function TVpFlexDSEditor.GetVerb(Index: Integer): string;
 begin
   if Index = 0 then
     Result := 'Map Database Fields...';
 end;
 
-function TVpFlexDSEditor.GetVerbCount : Integer;
+function TVpFlexDSEditor.GetVerbCount: Integer;
 begin
   Result := 1;
 end;
 {$ENDIF} {RuntimeTest}
-
+*)
 
 procedure TfrmFieldMapper.FormShow(Sender: TObject);
 begin
+  PositionControls;
+
   DatasetCombo.Items.Clear;
   DatasetCombo.Text := '';
 
@@ -230,7 +285,6 @@ var
   ErrorStr: string;
 begin
   ErrorStr := '';
-  btnAddMapping.Caption := 'Add Field'#13#10'Mapping';
 
   DSResActive := false;
   DSEventActive := false;
@@ -286,12 +340,47 @@ begin
     Application.MessageBox(PChar('There was an error opening the following '
       + 'datasets'#13#10#10 + ErrorStr + #10
       + 'Field mapping for these tables will not be available until the '
-      + 'errors are corrected.'), 'Error Opening Dataset(s)', 0);
+      + 'errors are corrected. Any previously assigned mappings will be kept.'),
+      'Error Opening Dataset(s)', 0);
 end;
 {=====}
 
+procedure TfrmFieldMapper.PositionControls;
+var
+  w, h: Integer;
+begin
+  btnAddMapping.AutoSize := true;
+  btnAddAll.AutoSize := true;
+  w := Max(btnAddMapping.Width, btnAddAll.Width);
+  h := btnAddMapping.Height;
+
+  btnAddMapping.AutoSize := false;
+  btnAddMapping.Height := w * 2 div 3; //h;
+  btnAddMapping.Width := w;
+
+  btnAddAll.AutoSize := false;
+  btnAddAll.Height := w * 2 div 3; //h;
+  btnAddAll.Width := w;
+
+  btnDeleteMapping.AutoSize := true;
+  btnClearMappings.AutoSize := true;
+  w := max(btnDeleteMapping.Width, btnClearMappings.Width);
+  h := btnDeleteMapping.Height;
+
+  btnDeleteMapping.AutoSize := false;
+  btnDeleteMapping.Height := h;
+  btnDeleteMapping.Width := w;
+
+  btnClearMappings.AutoSize := false;
+  btnClearMappings.Height := h;
+  btnClearMappings.Width := w;
+
+  AlignOKCancel(BtnOK, BtnCancel, ButtonPanel);
+end;
+
 procedure TfrmFieldMapper.DatasetComboChange(Sender: TObject);
 begin
+  btnAddAll.Enabled := DatasetCombo.ItemIndex > -1;
   SyncObjects;
 end;
 {=====}
@@ -316,7 +405,7 @@ begin
     VpFieldLB.Items.Add('Description');
     VpFieldLB.Items.Add('Notes');
     VpFieldLB.Items.Add('ImageIndex');
-    VpFieldLB.Items.Add('Active');
+    VpFieldLB.Items.Add('ResourceActive');
     VpFieldLB.Items.Add('UserField0');
     VpFieldLB.Items.Add('UserField1');
     VpFieldLB.Items.Add('UserField2');
@@ -333,21 +422,22 @@ begin
     MC := FlexDS.EventMappings;
     EventsDS.FieldDefs.GetItemNames(DataSetFieldLB.Items);
     VpFieldLB.Items.Add('RecordID');
+    VpFieldLB.Items.Add('ResourceID');
     VpFieldLB.Items.Add('StartTime');
     VpFieldLB.Items.Add('EndTime');
-    VpFieldLB.Items.Add('ResourceID');
     VpFieldLB.Items.Add('Description');
-    VpFieldLB.Items.Add('Note');
+    VpFieldLB.Items.Add('Location');
+    VpFieldLB.Items.Add('Notes');
     VpFieldLB.Items.Add('Category');
     VpFieldLB.Items.Add('AllDayEvent');
-    VpFieldLB.Items.Add('AlarmWavPath');
+    VpFieldLB.Items.Add('DingPath');
     VpFieldLB.Items.Add('AlarmSet');
-    VpFieldLB.Items.Add('AlarmAdv');
-    VpFieldLB.Items.Add('AlarmAdvType');
+    VpFieldLB.Items.Add('AlarmAdvance');
+    VpFieldLB.Items.Add('AlarmAdvanceType');
     VpFieldLB.Items.Add('SnoozeTime');
     VpFieldLB.Items.Add('RepeatCode');
     VpFieldLB.Items.Add('RepeatRangeEnd');
-    VpFieldLB.Items.Add('CustInterval');
+    VpFieldLB.Items.Add('CustomInterval');
     VpFieldLB.Items.Add('UserField0');
     VpFieldLB.Items.Add('UserField1');
     VpFieldLB.Items.Add('UserField2');
@@ -363,22 +453,21 @@ begin
   else if DatasetCombo.Text = ContactsTableName then begin
     MC := FlexDS.ContactMappings;
     ContactsDS.FieldDefs.GetItemNames(DataSetFieldLB.Items);
-    VpFieldLB.Items.Add('ResourceID');
     VpFieldLB.Items.Add('RecordID');
+    VpFieldLB.Items.Add('ResourceID');
     VpFieldLB.Items.Add('FirstName');
     VpFieldLB.Items.Add('LastName');
     VpFieldLB.Items.Add('Birthdate');
     VpFieldLB.Items.Add('Anniversary');
     VpFieldLB.Items.Add('Title');
     VpFieldLB.Items.Add('Company');
-    VpFieldLB.Items.Add('Position');
-    VpFieldLB.Items.Add('EMail');
+    VpFieldLB.Items.Add('Job_Position');
     VpFieldLB.Items.Add('Address');
     VpFieldLB.Items.Add('City');
     VpFieldLB.Items.Add('State');
     VpFieldLB.Items.Add('Zip');
     VpFieldLB.Items.Add('Country');
-    VpFieldLB.Items.Add('Note');
+    VpFieldLB.Items.Add('Notes');
     VpFieldLB.Items.Add('Phone1');
     VpFieldLB.Items.Add('Phone2');
     VpFieldLB.Items.Add('Phone3');
@@ -390,6 +479,7 @@ begin
     VpFieldLB.Items.Add('PhoneType4');
     VpFieldLB.Items.Add('PhoneType5');
     VpFieldLB.Items.Add('Category');
+    VpFieldLB.Items.Add('EMail');
     VpFieldLB.Items.Add('Custom1');
     VpFieldLB.Items.Add('Custom2');
     VpFieldLB.Items.Add('Custom3');
@@ -409,15 +499,15 @@ begin
   else if DatasetCombo.Text = TasksTableName then begin
     MC := FlexDS.TaskMappings;
     TasksDS.FieldDefs.GetItemNames(DataSetFieldLB.Items);
-    VpFieldLB.Items.Add('ResourceID');
     VpFieldLB.Items.Add('RecordID');
+    VpFieldLB.Items.Add('ResourceID');
     VpFieldLB.Items.Add('Complete');
     VpFieldLB.Items.Add('Description');
     VpFieldLB.Items.Add('Details');
     VpFieldLB.Items.Add('CreatedOn');
-    VpFieldLB.Items.Add('CompletedOn');
     VpFieldLB.Items.Add('Priority');
     VpFieldLB.Items.Add('Category');
+    VpFieldLB.Items.Add('CompletedOn');
     VpFieldLB.Items.Add('DueDate');
     VpFieldLB.Items.Add('UserField0');
     VpFieldLB.Items.Add('UserField1');
@@ -449,6 +539,7 @@ begin
   btnDeleteMapping.Enabled := false;
   btnClearMappings.Enabled := FieldMappingsLB.Items.Count > 0;
   btnAddMapping.Enabled := false;
+  btnAddAll.Enabled := false;
   
   VpFieldLB.ItemIndex := -1;
   DatasetFieldLB.ItemIndex := -1;
@@ -464,6 +555,7 @@ end;
 procedure TfrmFieldMapper.DatasetFieldLBKeyPress(Sender: TObject;
   var Key: Char);
 begin
+  Unused(Key);
   DbFieldSelected(sender);
 end;
 {=====}
@@ -477,42 +569,46 @@ end;
 procedure TfrmFieldMapper.VPFieldLBKeyPress(Sender: TObject;
   var Key: Char);
 begin
+  Unused(Key);
   VpFieldSelected(Sender);
 end;
 {=====}
+
+procedure TfrmFieldMapper.btnAddAllClick(Sender: TObject);
+var
+  i, j: Integer;
+  MC: TCollection;
+  FM: TVpFieldMapping;
+begin
+  MC := GetSelectedFieldMappings;
+  if MC = nil then
+    exit;
+
+  for i:= 0 to DatasetFieldLB.Items.Count-1 do begin
+    for j:=0 to VPFieldLB.Items.Count-1 do
+      if VPFieldLB.Items[j] = DatasetFieldLB.Items[i] then begin
+        FM := TVpFieldMapping(MC.Add);
+        FM.DBField := DatasetFieldLB.Items[i];
+        FM.VPField := VPFieldLB.Items[j];
+        break;
+      end;
+  end;
+  SyncObjects;
+end;
 
 procedure TfrmFieldMapper.btnAddMappingClick(Sender: TObject);
 var
   FM: TVpFieldMapping;
   MC: TCollection;
 begin
-  MC := nil;
-  if DataSetCombo.Text = ResourceTableName then
-    MC := FlexDS.ResourceMappings
+  MC := GetSelectedFieldMappings;
+  if MC = nil then
+    exit;
 
-  else if DataSetCombo.Text = EventsTableName then
-    MC := FlexDS.EventMappings
-
-  else if DataSetCombo.Text = ContactsTableName then
-    MC := FlexDS.ContactMappings
-
-  else if DataSetCombo.Text = TasksTableName then
-    MC := FlexDS.TaskMappings;
-
-  if MC <> nil then begin
-    FM := TVpFieldMapping(MC.Add);
-
-    FM.DBField := DatasetFieldLB.Items[DatasetFieldLB.ItemIndex];
-    FM.VPField := VPFieldLB.Items[VPFieldLB.ItemIndex];
-
-    SyncObjects;
-  end;
-end;
-{=====}
-
-procedure TfrmFieldMapper.Button2Click(Sender: TObject);
-begin
-  Close;
+  FM := TVpFieldMapping(MC.Add);
+  FM.DBField := DatasetFieldLB.Items[DatasetFieldLB.ItemIndex];
+  FM.VPField := VPFieldLB.Items[VPFieldLB.ItemIndex];
+  SyncObjects;
 end;
 {=====}
 
@@ -523,24 +619,18 @@ end;
 {=====}
 
 procedure TfrmFieldMapper.btnDeleteMappingClick(Sender: TObject);
+var
+  MC: TCollection;
 begin
   if FieldMappingsLB.ItemIndex > -1 then begin
-
-    if DataSetCombo.Text = ResourceTableName then
-      FlexDS.ResourceMappings.Items[FieldMappingsLB.ItemIndex].Free
-
-    else if DataSetCombo.Text = EventsTableName then
-      FlexDS.EventMappings.Items[FieldMappingsLB.ItemIndex].Free
-
-    else if DataSetCombo.Text = ContactsTableName then
-      FlexDS.ContactMappings.Items[FieldMappingsLB.ItemIndex].Free
-
-    else if DataSetCombo.Text = TasksTableName then
-      FlexDS.TaskMappings.Items[FieldMappingsLB.ItemIndex].Free;
-
-    SyncObjects;
+    MC := GetSelectedFieldMappings;
+    if MC <> nil then begin
+      MC.Items[FieldMappingsLB.ItemIndex].Free;
+      SyncObjects;
+    end;
   end;
 end;
+
 {=====}
 
 procedure TfrmFieldMapper.btnClearMappingsClick(Sender: TObject);
@@ -549,24 +639,13 @@ var
 begin
   MC := nil;
   if FieldMappingsLB.Items.Count > 0 then begin
-
-    if DataSetCombo.Text = ResourceTableName then
-      MC := FlexDS.ResourceMappings
-
-    else if DataSetCombo.Text = EventsTableName then
-      MC := FlexDS.EventMappings
-
-    else if DataSetCombo.Text = ContactsTableName then
-      MC := FlexDS.ContactMappings
-
-    else if DataSetCombo.Text = TasksTableName then
-      MC := FlexDS.TaskMappings;
-
+    MC := GetSelectedFieldMappings;
     if MC <> nil then begin
       while (MC.Count > 0) do
         MC.Items[0].Free;
       SyncObjects;
     end;
+    btnAddAll.Enabled := DatasetCombo.ItemIndex > -1;
   end;
 end;
 {=====}
@@ -580,6 +659,7 @@ end;
 procedure TfrmFieldMapper.FieldMappingsLBKeyPress(Sender: TObject;
   var Key: Char);
 begin
+  Unused(Key);
   FieldMappingsLBClick(Sender);
 end;
 {=====}
@@ -587,6 +667,7 @@ end;
 procedure TfrmFieldMapper.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
+  Unused(Action);
   {reset all datasets to their original active status}
   if ResDS <> nil then
     ResDS.Active := DSResActive;
@@ -598,6 +679,20 @@ begin
     TasksDS.Active := DSTaskActive;
 end;
 {=====}
+
+function TfrmFieldMapper.GetSelectedFieldMappings: TCollection;
+begin
+  if DataSetCombo.Text = ResourceTableName then
+    Result := FlexDS.ResourceMappings
+  else if DataSetCombo.Text = EventsTableName then
+    Result := FlexDS.EventMappings
+  else if DataSetCombo.Text = ContactsTableName then
+    Result := FlexDS.ContactMappings
+  else if DataSetCombo.Text = TasksTableName then
+    Result := FlexDS.TaskMappings
+  else
+    Result := nil;
+end;
 
 end.
 

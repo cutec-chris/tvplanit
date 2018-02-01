@@ -1,451 +1,1379 @@
 object ContactEditForm: TContactEditForm
-  Left = 311
-  Height = 321
-  Top = 245
-  Width = 433
+  Left = 479
+  Height = 610
+  Top = 165
+  Width = 506
   HorzScrollBar.Page = 432
   VertScrollBar.Page = 320
-  ActiveControl = tsContacts
+  ActiveControl = PageControl
   Caption = 'ContactEdit'
-  ClientHeight = 321
-  ClientWidth = 433
-  Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  ClientHeight = 610
+  ClientWidth = 506
+  Constraints.MinWidth = 480
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
   OnShow = FormShow
   Position = poScreenCenter
-  object tsContacts: TPageControl
-    Height = 280
-    Width = 433
-    ActivePage = tabMain
+  LCLVersion = '1.6.4.0'
+  object PageControl: TPageControl
+    Left = 0
+    Height = 577
+    Top = 0
+    Width = 506
+    ActivePage = tabBaseData
     Align = alClient
     TabIndex = 0
     TabOrder = 0
-    OnChange = tsContactsChange
-    object tabMain: TTabSheet
-      Caption = '&Main'
-      ClientHeight = 254
-      ClientWidth = 425
-      object NameLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 6
-        Width = 127
+    OnChange = PageControlChange
+    object tabBaseData: TTabSheet
+      Caption = 'tabBaseData'
+      ClientHeight = 549
+      ClientWidth = 498
+      ImageIndex = 0
+      object lblLastName: TLabel
+        AnchorSideTop.Control = edLastName
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = edLastName
+        Left = 44
+        Height = 15
+        Top = 12
+        Width = 54
         Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'Name'
-        FocusControl = NameEdit
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'Last name'
+        FocusControl = edLastName
         ParentColor = False
       end
-      object AddrLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 54
-        Width = 127
-        Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'Address'
-        FocusControl = AddressEdit
-        ParentColor = False
-      end
-      object CityLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 78
-        Width = 127
-        Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'City'
-        FocusControl = CityEdit
-        ParentColor = False
-      end
-      object StateLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 102
-        Width = 127
-        Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'State'
-        FocusControl = cboxState
-        ParentColor = False
-      end
-      object ZipLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 126
-        Width = 127
-        Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'Zip Code'
-        FocusControl = ZipCodeEdit
-        ParentColor = False
-      end
-      object CountryLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 150
-        Width = 127
-        Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'Country'
-        FocusControl = cboxCountry
-        ParentColor = False
-      end
-      object PositionLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 199
-        Width = 127
-        Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'Position'
-        FocusControl = PositionEdit
-        ParentColor = False
-      end
-      object TitleLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 31
-        Width = 127
-        Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'Title'
-        FocusControl = TitleEdit
-        ParentColor = False
-      end
-      object CompanyLbl: TLabel
-        Left = 91
-        Height = 14
-        Top = 175
-        Width = 46
-        Alignment = taRightJustify
-        Caption = 'Company'
-        FocusControl = CompanyEdit
-        ParentColor = False
-      end
-      object CategoryLbl: TLabel
-        Left = 8
-        Height = 16
-        Top = 226
-        Width = 127
-        Alignment = taRightJustify
-        AutoSize = False
-        Caption = 'Category'
-        FocusControl = cboxCategory
-        ParentColor = False
-      end
-      object NameEdit: TEdit
-        Left = 136
-        Height = 21
-        Top = 4
-        Width = 247
+      object edLastName: TEdit
+        AnchorSideTop.Control = tabBaseData
+        AnchorSideRight.Control = tabBaseData
+        AnchorSideRight.Side = asrBottom
+        Left = 106
+        Height = 23
+        Top = 8
+        Width = 384
+        Anchors = [akTop, akRight]
+        BorderSpacing.Top = 8
+        BorderSpacing.Right = 8
         MaxLength = 100
         OnChange = ItemChanged
         TabOrder = 0
       end
-      object AddressEdit: TEdit
-        Left = 136
-        Height = 21
-        Top = 52
-        Width = 247
+      object lblFirstName: TLabel
+        AnchorSideTop.Control = edFirstName
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = edFirstName
+        Left = 43
+        Height = 15
+        Top = 39
+        Width = 55
+        Alignment = taRightJustify
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'First name'
+        FocusControl = edFirstName
+        ParentColor = False
+      end
+      object edFirstName: TEdit
+        AnchorSideLeft.Control = edLastName
+        AnchorSideTop.Control = edLastName
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = tabBaseData
+        AnchorSideRight.Side = asrBottom
+        Left = 106
+        Height = 23
+        Top = 35
+        Width = 384
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Top = 4
+        BorderSpacing.Right = 8
         MaxLength = 100
-        OnChange = ItemChanged
-        TabOrder = 2
-      end
-      object CityEdit: TEdit
-        Left = 136
-        Height = 21
-        Top = 76
-        Width = 247
-        MaxLength = 50
-        OnChange = ItemChanged
-        TabOrder = 3
-      end
-      object StateEdit: TEdit
-        Left = 168
-        Height = 21
-        Top = 100
-        Width = 247
-        MaxLength = 25
-        OnChange = ItemChanged
-        TabOrder = 5
-      end
-      object ZipCodeEdit: TEdit
-        Left = 136
-        Height = 21
-        Top = 124
-        Width = 121
-        MaxLength = 10
-        OnChange = ItemChanged
-        TabOrder = 6
-      end
-      object PositionEdit: TEdit
-        Left = 136
-        Height = 21
-        Top = 197
-        Width = 121
-        MaxLength = 50
-        OnChange = ItemChanged
-        TabOrder = 10
-      end
-      object TitleEdit: TEdit
-        Left = 136
-        Height = 21
-        Top = 29
-        Width = 121
-        MaxLength = 50
         OnChange = ItemChanged
         TabOrder = 1
       end
-      object CompanyEdit: TEdit
-        Left = 136
-        Height = 21
-        Top = 173
-        Width = 121
+      object lblTitle: TLabel
+        AnchorSideTop.Control = edTitle
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = edTitle
+        Left = 75
+        Height = 15
+        Top = 66
+        Width = 23
+        Alignment = taRightJustify
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'Title'
+        FocusControl = edTitle
+        ParentColor = False
+      end
+      object edTitle: TEdit
+        AnchorSideLeft.Control = edLastName
+        AnchorSideTop.Control = edFirstName
+        AnchorSideTop.Side = asrBottom
+        Left = 106
+        Height = 23
+        Top = 62
+        Width = 153
+        BorderSpacing.Top = 4
         MaxLength = 50
         OnChange = ItemChanged
-        TabOrder = 9
+        TabOrder = 2
       end
-      object cboxCategory: TComboBox
-        Left = 136
-        Height = 21
-        Top = 224
-        Width = 121
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        ItemHeight = 13
-        MaxLength = 65535
-        TabOrder = 11
+      object lblCategory: TLabel
+        AnchorSideTop.Control = cbCategory
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = cbCategory
+        Left = 50
+        Height = 15
+        Top = 93
+        Width = 48
+        Alignment = taRightJustify
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'Category'
+        FocusControl = cbCategory
+        ParentColor = False
       end
-      object cboxState: TComboBox
-        Left = 136
-        Height = 21
-        Top = 100
-        Width = 249
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        ItemHeight = 13
+      object cbCategory: TComboBox
+        AnchorSideLeft.Control = edLastName
+        AnchorSideTop.Control = edTitle
+        AnchorSideTop.Side = asrBottom
+        Left = 106
+        Height = 23
+        Top = 89
+        Width = 153
+        BorderSpacing.Top = 4
+        ItemHeight = 15
         MaxLength = 65535
+        TabOrder = 3
+      end
+      object lblBirthdate: TLabel
+        AnchorSideTop.Control = edBirthdate
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = edBirthdate
+        Left = 47
+        Height = 15
+        Top = 120
+        Width = 51
+        Alignment = taRightJustify
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'Birth date'
+        FocusControl = edBirthdate
+        ParentColor = False
+      end
+      object edBirthdate: TDateEdit
+        AnchorSideLeft.Control = edLastName
+        AnchorSideTop.Control = cbCategory
+        AnchorSideTop.Side = asrBottom
+        Left = 106
+        Height = 23
+        Top = 116
+        Width = 153
+        CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
+        DateOrder = doNone
+        ButtonWidth = 23
+        BorderSpacing.Top = 4
+        BorderSpacing.Bottom = 8
+        NumGlyphs = 1
+        MaxLength = 0
+        ParentFont = False
         TabOrder = 4
-        Visible = False
+        Text = 'edBirthdate'
       end
-      object edtCountry: TEdit
-        Left = 152
-        Height = 21
-        Top = 148
-        Width = 249
-        TabOrder = 8
+    end
+    object tabAddresses: TTabSheet
+      Caption = 'tabAddresses'
+      ClientHeight = 549
+      ClientWidth = 498
+      ImageIndex = 1
+      object gbWorkAddress: TGroupBox
+        Left = 8
+        Height = 298
+        Top = 8
+        Width = 482
+        Align = alTop
+        AutoSize = True
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 8
+        BorderSpacing.Right = 8
+        BorderSpacing.Bottom = 8
+        Caption = 'gbWorkAddress'
+        ClientHeight = 278
+        ClientWidth = 478
+        Font.Style = [fsBold]
+        ParentFont = False
+        TabOrder = 0
+        object edCompany: TEdit
+          AnchorSideTop.Control = gbWorkAddress
+          AnchorSideRight.Control = gbWorkAddress
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 0
+          Width = 338
+          Anchors = [akTop, akRight]
+          BorderSpacing.Right = 8
+          MaxLength = 50
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 0
+        end
+        object lblCompany: TLabel
+          AnchorSideTop.Control = edCompany
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 59
+          Height = 15
+          Top = 4
+          Width = 65
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblCompany'
+          FocusControl = edCompany
+          ParentColor = False
+          ParentFont = False
+        end
+        object lblDepartment: TLabel
+          AnchorSideTop.Control = edDepartment
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 48
+          Height = 15
+          Top = 31
+          Width = 76
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblDepartment'
+          FocusControl = edDepartment
+          ParentColor = False
+          ParentFont = False
+        end
+        object edDepartment: TEdit
+          AnchorSideLeft.Control = edCompany
+          AnchorSideTop.Control = edCompany
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edCompany
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 27
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          MaxLength = 50
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 1
+        end
+        object lblPosition: TLabel
+          AnchorSideTop.Control = edPosition
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 68
+          Height = 15
+          Top = 58
+          Width = 56
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblPosition'
+          FocusControl = edPosition
+          ParentColor = False
+          ParentFont = False
+        end
+        object edPosition: TEdit
+          AnchorSideLeft.Control = edDepartment
+          AnchorSideTop.Control = edDepartment
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edCompany
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 54
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          MaxLength = 50
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 2
+        end
+        object lblAddressW: TLabel
+          AnchorSideTop.Control = edAddressW
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 69
+          Height = 15
+          Top = 85
+          Width = 55
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblAddress'
+          FocusControl = edAddressW
+          ParentColor = False
+          ParentFont = False
+        end
+        object edAddressW: TEdit
+          AnchorSideLeft.Control = edPosition
+          AnchorSideTop.Control = edPosition
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edCompany
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 81
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          MaxLength = 100
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 3
+        end
+        object lblCityW: TLabel
+          AnchorSideTop.Control = edCityW
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 90
+          Height = 15
+          Top = 112
+          Width = 34
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblCity'
+          FocusControl = edCityW
+          ParentColor = False
+          ParentFont = False
+        end
+        object edCityW: TEdit
+          AnchorSideLeft.Control = edAddressW
+          AnchorSideTop.Control = edAddressW
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edCompany
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 108
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          MaxLength = 50
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 4
+        end
+        object lblStateW: TLabel
+          AnchorSideTop.Control = edStateW
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 85
+          Height = 15
+          Top = 139
+          Width = 39
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblState'
+          FocusControl = edStateW
+          ParentColor = False
+          ParentFont = False
+        end
+        object edStateW: TEdit
+          AnchorSideLeft.Control = edCityW
+          AnchorSideTop.Control = edCityW
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edCompany
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 135
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          MaxLength = 25
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 5
+        end
+        object lblStateComboW: TLabel
+          AnchorSideTop.Control = cbStateW
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 49
+          Height = 15
+          Top = 166
+          Width = 79
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 4
+          Caption = 'lblStateCombo'
+          FocusControl = cbStateW
+          ParentColor = False
+          ParentFont = False
+          Visible = False
+        end
+        object cbStateW: TComboBox
+          AnchorSideLeft.Control = edStateW
+          AnchorSideTop.Control = edStateW
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edCompany
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 162
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          TabOrder = 6
+          Visible = False
+        end
+        object lblZipCodeW: TLabel
+          AnchorSideTop.Control = edZipCodeW
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 66
+          Height = 15
+          Top = 193
+          Width = 58
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblZipCode'
+          FocusControl = edZipCodeW
+          ParentColor = False
+          ParentFont = False
+        end
+        object edZipCodeW: TEdit
+          AnchorSideLeft.Control = cbStateW
+          AnchorSideTop.Control = cbStateW
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 189
+          Width = 120
+          BorderSpacing.Top = 4
+          BorderSpacing.Right = 8
+          MaxLength = 10
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 7
+        end
+        object lblCountryComboW: TLabel
+          AnchorSideTop.Control = cbCountryW
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 28
+          Height = 15
+          Top = 220
+          Width = 96
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblCountryCombo'
+          FocusControl = cbCountryW
+          ParentColor = False
+          ParentFont = False
+          Visible = False
+        end
+        object cbCountryW: TComboBox
+          AnchorSideLeft.Control = edZipCodeW
+          AnchorSideTop.Control = edZipCodeW
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edCompany
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 216
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          BorderSpacing.Bottom = 8
+          ItemHeight = 15
+          MaxLength = 65535
+          OnChange = cbCountryChange
+          ParentFont = False
+          TabOrder = 8
+          Visible = False
+        end
+        object lblCountryW: TLabel
+          AnchorSideTop.Control = edCountryW
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCompany
+          Left = 68
+          Height = 15
+          Top = 251
+          Width = 56
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblCountry'
+          FocusControl = edCountryW
+          ParentColor = False
+          ParentFont = False
+        end
+        object edCountryW: TEdit
+          AnchorSideLeft.Control = cbCountryW
+          AnchorSideTop.Control = cbCountryW
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edCompany
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 247
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          BorderSpacing.Bottom = 8
+          ParentFont = False
+          TabOrder = 9
+        end
       end
-      object cboxCountry: TComboBox
-        Left = 136
-        Height = 21
-        Top = 148
-        Width = 249
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        Font.Height = -11
-        Font.Name = 'MS Sans Serif'
-        ItemHeight = 13
-        MaxLength = 65535
-        OnChange = cboxCountryChange
-        TabOrder = 7
+      object gbHomeAddress: TGroupBox
+        Left = 8
+        Height = 217
+        Top = 322
+        Width = 482
+        Align = alTop
+        AutoSize = True
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 16
+        BorderSpacing.Right = 8
+        BorderSpacing.Bottom = 8
+        Caption = 'gbHomeAddress'
+        ClientHeight = 197
+        ClientWidth = 478
+        Font.Style = [fsBold]
+        ParentFont = False
+        TabOrder = 1
+        object lblAddressH: TLabel
+          AnchorSideTop.Control = edAddressH
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edAddressH
+          Left = 69
+          Height = 15
+          Top = 4
+          Width = 55
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblAddress'
+          FocusControl = edAddressH
+          ParentColor = False
+          ParentFont = False
+        end
+        object edAddressH: TEdit
+          AnchorSideTop.Control = gbHomeAddress
+          AnchorSideRight.Control = gbHomeAddress
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 0
+          Width = 338
+          Anchors = [akTop, akRight]
+          BorderSpacing.Right = 8
+          MaxLength = 100
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 0
+        end
+        object lblCityH: TLabel
+          AnchorSideTop.Control = edCityH
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCityH
+          Left = 90
+          Height = 15
+          Top = 31
+          Width = 34
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblCity'
+          FocusControl = edCityH
+          ParentColor = False
+          ParentFont = False
+        end
+        object edCityH: TEdit
+          AnchorSideLeft.Control = edAddressH
+          AnchorSideTop.Control = edAddressH
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edAddressH
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 27
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          MaxLength = 50
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 1
+        end
+        object lblStateH: TLabel
+          AnchorSideTop.Control = edStateH
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edStateH
+          Left = 85
+          Height = 15
+          Top = 58
+          Width = 39
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblState'
+          FocusControl = edStateH
+          ParentColor = False
+          ParentFont = False
+        end
+        object edStateH: TEdit
+          AnchorSideLeft.Control = edCityH
+          AnchorSideTop.Control = edCityH
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edAddressH
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 54
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          MaxLength = 25
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 2
+        end
+        object lblStateComboH: TLabel
+          AnchorSideTop.Control = cbStateH
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = cbStateH
+          Left = 49
+          Height = 15
+          Top = 85
+          Width = 79
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 4
+          Caption = 'lblStateCombo'
+          FocusControl = cbStateH
+          ParentColor = False
+          ParentFont = False
+          Visible = False
+        end
+        object cbStateH: TComboBox
+          AnchorSideLeft.Control = edStateH
+          AnchorSideTop.Control = edStateH
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edAddressH
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 81
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          TabOrder = 3
+          Visible = False
+        end
+        object lblZipCodeH: TLabel
+          AnchorSideTop.Control = edZipCodeH
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edZipCodeH
+          Left = 66
+          Height = 15
+          Top = 112
+          Width = 58
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblZipCode'
+          FocusControl = edZipCodeH
+          ParentColor = False
+          ParentFont = False
+        end
+        object edZipCodeH: TEdit
+          AnchorSideLeft.Control = cbStateH
+          AnchorSideTop.Control = cbStateH
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 108
+          Width = 120
+          BorderSpacing.Top = 4
+          BorderSpacing.Right = 8
+          MaxLength = 10
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 4
+        end
+        object lblCountryComboH: TLabel
+          AnchorSideTop.Control = cbCountryH
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = cbCountryH
+          Left = 28
+          Height = 15
+          Top = 139
+          Width = 96
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblCountryCombo'
+          FocusControl = cbCountryH
+          ParentColor = False
+          ParentFont = False
+          Visible = False
+        end
+        object cbCountryH: TComboBox
+          AnchorSideLeft.Control = edZipCodeH
+          AnchorSideTop.Control = edZipCodeH
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edAddressH
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 135
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          BorderSpacing.Bottom = 8
+          ItemHeight = 15
+          MaxLength = 65535
+          OnChange = cbCountryChange
+          ParentFont = False
+          TabOrder = 5
+          Visible = False
+        end
+        object lblCountryH: TLabel
+          AnchorSideTop.Control = edCountryH
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edCountryH
+          Left = 68
+          Height = 15
+          Top = 170
+          Width = 56
+          Alignment = taRightJustify
+          Anchors = [akTop, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Right = 8
+          Caption = 'lblCountry'
+          FocusControl = edCountryH
+          ParentColor = False
+          ParentFont = False
+        end
+        object edCountryH: TEdit
+          AnchorSideLeft.Control = cbCountryH
+          AnchorSideTop.Control = cbCountryH
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = edAddressH
+          AnchorSideRight.Side = asrBottom
+          Left = 132
+          Height = 23
+          Top = 166
+          Width = 338
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Top = 4
+          BorderSpacing.Bottom = 8
+          ParentFont = False
+          TabOrder = 6
+        end
       end
     end
     object tabContact: TTabSheet
-      Caption = 'Con&tact'
-      ClientHeight = 280
-      ClientWidth = 433
+      Caption = 'tabContact'
+      ClientHeight = 545
+      ClientWidth = 498
       ImageIndex = 1
-      object EMailLbl: TLabel
-        Left = 91
-        Height = 14
-        Top = 136
-        Width = 38
-        Caption = 'EMailLbl'
-        ParentColor = False
-      end
-      object cboxPhoneLbl1: TComboBox
+      object gbPhone: TGroupBox
         Left = 8
-        Height = 21
+        Height = 159
         Top = 8
-        Width = 121
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        MaxLength = 65535
+        Width = 482
+        Align = alTop
+        AutoSize = True
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 8
+        BorderSpacing.Right = 8
+        Caption = 'Phone / fax'
+        ClientHeight = 139
+        ClientWidth = 478
+        Font.Style = [fsBold]
+        ParentFont = False
         TabOrder = 0
+        object cbPhone1: TComboBox
+          AnchorSideLeft.Control = gbPhone
+          Left = 8
+          Height = 23
+          Top = 0
+          Width = 88
+          BorderSpacing.Left = 8
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 0
+        end
+        object cbPhone2: TComboBox
+          AnchorSideLeft.Control = gbPhone
+          AnchorSideTop.Control = cbPhone1
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = cbPhone1
+          AnchorSideRight.Side = asrBottom
+          Left = 8
+          Height = 23
+          Top = 27
+          Width = 88
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 4
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 2
+        end
+        object cbPhone3: TComboBox
+          AnchorSideLeft.Control = gbPhone
+          AnchorSideTop.Control = cbPhone2
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = cbPhone1
+          AnchorSideRight.Side = asrBottom
+          Left = 8
+          Height = 23
+          Top = 54
+          Width = 88
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 4
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 4
+        end
+        object cbPhone4: TComboBox
+          AnchorSideLeft.Control = gbPhone
+          AnchorSideTop.Control = cbPhone3
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = cbPhone1
+          AnchorSideRight.Side = asrBottom
+          Left = 8
+          Height = 23
+          Top = 81
+          Width = 88
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 4
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 6
+        end
+        object edPhone4: TEdit
+          AnchorSideLeft.Control = cbPhone4
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbPhone4
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edPhone3
+          AnchorSideRight.Side = asrBottom
+          Left = 100
+          Height = 23
+          Top = 81
+          Width = 370
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          MaxLength = 25
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 7
+        end
+        object edPhone3: TEdit
+          AnchorSideLeft.Control = cbPhone3
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbPhone3
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edPhone2
+          AnchorSideRight.Side = asrBottom
+          Left = 100
+          Height = 23
+          Top = 54
+          Width = 370
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          MaxLength = 25
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 5
+        end
+        object edPhone2: TEdit
+          AnchorSideLeft.Control = cbPhone2
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbPhone2
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edPhone1
+          AnchorSideRight.Side = asrBottom
+          Left = 100
+          Height = 23
+          Top = 27
+          Width = 370
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          MaxLength = 25
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 3
+        end
+        object edPhone1: TEdit
+          AnchorSideLeft.Control = cbPhone1
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbPhone1
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = gbPhone
+          AnchorSideRight.Side = asrBottom
+          Left = 100
+          Height = 23
+          Top = 0
+          Width = 370
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          BorderSpacing.Right = 8
+          MaxLength = 25
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 1
+        end
+        object cbPhone5: TComboBox
+          AnchorSideLeft.Control = gbPhone
+          AnchorSideTop.Control = cbPhone4
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = cbPhone1
+          AnchorSideRight.Side = asrBottom
+          Left = 8
+          Height = 23
+          Top = 108
+          Width = 88
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 4
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 8
+        end
+        object edPhone5: TEdit
+          AnchorSideLeft.Control = cbPhone5
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbPhone5
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edPhone4
+          AnchorSideRight.Side = asrBottom
+          Left = 100
+          Height = 23
+          Top = 108
+          Width = 370
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          BorderSpacing.Bottom = 8
+          MaxLength = 25
+          OnChange = ItemChanged
+          ParentFont = False
+          TabOrder = 9
+        end
       end
-      object cboxPhoneLbl2: TComboBox
+      object gbEMail: TGroupBox
         Left = 8
-        Height = 21
-        Top = 32
-        Width = 121
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        MaxLength = 65535
-        TabOrder = 2
-      end
-      object cboxPhoneLbl3: TComboBox
-        Left = 8
-        Height = 21
-        Top = 56
-        Width = 121
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        MaxLength = 65535
-        TabOrder = 4
-      end
-      object cboxPhoneLbl4: TComboBox
-        Left = 8
-        Height = 21
-        Top = 80
-        Width = 121
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        MaxLength = 65535
-        TabOrder = 6
-      end
-      object Phone4Edit: TEdit
-        Left = 136
-        Height = 21
-        Top = 80
-        Width = 121
-        MaxLength = 25
-        OnChange = ItemChanged
-        TabOrder = 7
-      end
-      object Phone3Edit: TEdit
-        Left = 136
-        Height = 21
-        Top = 56
-        Width = 121
-        MaxLength = 25
-        OnChange = ItemChanged
-        TabOrder = 5
-      end
-      object Phone2Edit: TEdit
-        Left = 136
-        Height = 21
-        Top = 32
-        Width = 121
-        MaxLength = 25
-        OnChange = ItemChanged
-        TabOrder = 3
-      end
-      object Phone1Edit: TEdit
-        Left = 136
-        Height = 21
-        Top = 8
-        Width = 121
-        MaxLength = 25
-        OnChange = ItemChanged
+        Height = 109
+        Top = 183
+        Width = 482
+        Align = alTop
+        AutoSize = True
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 16
+        BorderSpacing.Right = 8
+        Caption = 'E-Mail'
+        ClientHeight = 89
+        ClientWidth = 478
+        Font.Style = [fsBold]
+        ParentFont = False
         TabOrder = 1
+        object edEMail1: TEdit
+          AnchorSideLeft.Control = cbEMail1
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbEMail1
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = gbEMail
+          AnchorSideRight.Side = asrBottom
+          Left = 128
+          Height = 23
+          Top = 4
+          Width = 342
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          BorderSpacing.Right = 8
+          ParentFont = False
+          TabOrder = 1
+        end
+        object edEMail2: TEdit
+          AnchorSideLeft.Control = cbEMail2
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbEMail2
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edEMail1
+          AnchorSideRight.Side = asrBottom
+          Left = 128
+          Height = 23
+          Top = 31
+          Width = 342
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          ParentFont = False
+          TabOrder = 3
+        end
+        object edEMail3: TEdit
+          AnchorSideLeft.Control = cbEMail3
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbEMail3
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edEMail1
+          AnchorSideRight.Side = asrBottom
+          Left = 128
+          Height = 23
+          Top = 58
+          Width = 342
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          BorderSpacing.Bottom = 8
+          ParentFont = False
+          TabOrder = 5
+        end
+        object cbEMail1: TComboBox
+          AnchorSideLeft.Control = gbEMail
+          Left = 8
+          Height = 23
+          Top = 4
+          Width = 116
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 4
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 0
+        end
+        object cbEMail2: TComboBox
+          AnchorSideLeft.Control = gbEMail
+          AnchorSideTop.Control = cbEMail1
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = cbEMail1
+          AnchorSideRight.Side = asrBottom
+          Left = 8
+          Height = 23
+          Top = 31
+          Width = 116
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 4
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 2
+        end
+        object cbEMail3: TComboBox
+          AnchorSideLeft.Control = gbEMail
+          AnchorSideTop.Control = cbEMail2
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = cbEMail1
+          AnchorSideRight.Side = asrBottom
+          Left = 8
+          Height = 23
+          Top = 58
+          Width = 116
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 4
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 4
+        end
       end
-      object cboxPhoneLbl5: TComboBox
-        Left = 8
-        Height = 21
-        Top = 104
-        Width = 121
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        MaxLength = 65535
-        TabOrder = 8
-      end
-      object Phone5Edit: TEdit
-        Left = 136
-        Height = 21
-        Top = 104
-        Width = 121
-        MaxLength = 25
-        OnChange = ItemChanged
-        TabOrder = 9
-      end
-      object EMailEdit: TEdit
-        Left = 136
-        Height = 21
-        Top = 128
-        Width = 121
-        TabOrder = 10
+      object gbWebsites: TGroupBox
+        Left = 6
+        Height = 78
+        Top = 308
+        Width = 484
+        Align = alTop
+        AutoSize = True
+        BorderSpacing.Left = 6
+        BorderSpacing.Top = 16
+        BorderSpacing.Right = 8
+        BorderSpacing.Bottom = 8
+        Caption = 'Websites'
+        ClientHeight = 58
+        ClientWidth = 480
+        Font.Style = [fsBold]
+        ParentFont = False
+        TabOrder = 2
+        object edWebsite1: TEdit
+          AnchorSideLeft.Control = cbWebsite1
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbWebsite1
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = gbWebsites
+          AnchorSideRight.Side = asrBottom
+          Left = 157
+          Height = 23
+          Top = 0
+          Width = 315
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          BorderSpacing.Right = 8
+          ParentFont = False
+          TabOrder = 1
+        end
+        object edWebsite2: TEdit
+          AnchorSideLeft.Control = cbWebsite2
+          AnchorSideLeft.Side = asrBottom
+          AnchorSideTop.Control = cbWebsite2
+          AnchorSideTop.Side = asrCenter
+          AnchorSideRight.Control = edWebsite1
+          AnchorSideRight.Side = asrBottom
+          Left = 157
+          Height = 23
+          Top = 27
+          Width = 315
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 4
+          BorderSpacing.Bottom = 8
+          ParentFont = False
+          TabOrder = 3
+        end
+        object cbWebsite1: TComboBox
+          AnchorSideLeft.Control = gbWebsites
+          AnchorSideTop.Control = gbWebsites
+          Left = 8
+          Height = 23
+          Top = 0
+          Width = 145
+          BorderSpacing.Left = 8
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 0
+        end
+        object cbWebsite2: TComboBox
+          AnchorSideLeft.Control = gbWebsites
+          AnchorSideTop.Control = cbWebsite1
+          AnchorSideTop.Side = asrBottom
+          AnchorSideRight.Control = cbWebsite1
+          AnchorSideRight.Side = asrBottom
+          Left = 8
+          Height = 23
+          Top = 27
+          Width = 145
+          Anchors = [akTop, akLeft, akRight]
+          BorderSpacing.Left = 8
+          BorderSpacing.Top = 4
+          BorderSpacing.Bottom = 8
+          DropDownCount = 24
+          ItemHeight = 15
+          MaxLength = 65535
+          ParentFont = False
+          Style = csDropDownList
+          TabOrder = 2
+        end
       end
     end
     object tabCustom: TTabSheet
-      Caption = 'C&ustom'
-      ClientHeight = 280
-      ClientWidth = 433
-      ImageIndex = 2
-      object CustomLbl1: TLabel
-        Left = 8
-        Height = 14
+      Caption = 'tabCustom'
+      ClientHeight = 545
+      ClientWidth = 498
+      ImageIndex = 3
+      object lblCustom1: TLabel
+        AnchorSideTop.Control = edCustom1
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = edCustom1
+        Left = 91
+        Height = 15
         Top = 12
-        Width = 56
-        Caption = 'CustomLbl1'
+        Width = 61
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'lblCustom1'
+        FocusControl = edCustom1
         ParentColor = False
       end
-      object CustomLbl2: TLabel
-        Left = 8
-        Height = 14
-        Top = 36
-        Width = 56
-        Caption = 'CustomLbl2'
+      object lblCustom2: TLabel
+        AnchorSideTop.Control = edCustom2
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = edCustom2
+        Left = 91
+        Height = 15
+        Top = 39
+        Width = 61
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'lblCustom2'
+        FocusControl = edCustom2
         ParentColor = False
       end
-      object CustomLbl3: TLabel
-        Left = 8
-        Height = 14
-        Top = 60
-        Width = 56
-        Caption = 'CustomLbl3'
+      object lblCustom3: TLabel
+        AnchorSideTop.Control = edCustom3
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = edCustom3
+        Left = 91
+        Height = 15
+        Top = 66
+        Width = 61
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'lblCustom3'
+        FocusControl = edCustom3
         ParentColor = False
       end
-      object CustomLbl4: TLabel
-        Left = 8
-        Height = 14
-        Top = 84
-        Width = 56
-        Caption = 'CustomLbl4'
+      object lblCustom4: TLabel
+        AnchorSideTop.Control = edCustom4
+        AnchorSideTop.Side = asrCenter
+        AnchorSideRight.Control = edCustom4
+        Left = 91
+        Height = 15
+        Top = 93
+        Width = 61
+        Anchors = [akTop, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Right = 8
+        Caption = 'lblCustom4'
+        FocusControl = edCustom4
         ParentColor = False
       end
-      object Custom1Edit: TEdit
-        Left = 80
-        Height = 21
+      object edCustom1: TEdit
+        AnchorSideTop.Control = tabCustom
+        AnchorSideRight.Control = tabCustom
+        AnchorSideRight.Side = asrBottom
+        Left = 160
+        Height = 23
         Top = 8
-        Width = 121
+        Width = 330
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Top = 8
+        BorderSpacing.Right = 8
         MaxLength = 100
         OnChange = ItemChanged
         TabOrder = 0
       end
-      object Custom2Edit: TEdit
-        Left = 80
-        Height = 21
-        Top = 32
-        Width = 121
+      object edCustom2: TEdit
+        AnchorSideLeft.Control = edCustom1
+        AnchorSideTop.Control = edCustom1
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = edCustom1
+        AnchorSideRight.Side = asrBottom
+        Left = 160
+        Height = 23
+        Top = 35
+        Width = 330
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Top = 4
         MaxLength = 100
         OnChange = ItemChanged
         TabOrder = 1
       end
-      object Custom3Edit: TEdit
-        Left = 80
-        Height = 21
-        Top = 56
-        Width = 121
+      object edCustom3: TEdit
+        AnchorSideLeft.Control = edCustom1
+        AnchorSideTop.Control = edCustom2
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = edCustom1
+        AnchorSideRight.Side = asrBottom
+        Left = 160
+        Height = 23
+        Top = 62
+        Width = 330
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Top = 4
         MaxLength = 100
         OnChange = ItemChanged
         TabOrder = 2
       end
-      object Custom4Edit: TEdit
-        Left = 80
-        Height = 21
-        Top = 80
-        Width = 121
+      object edCustom4: TEdit
+        AnchorSideLeft.Control = edCustom1
+        AnchorSideTop.Control = edCustom3
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = edCustom1
+        AnchorSideRight.Side = asrBottom
+        Left = 160
+        Height = 23
+        Top = 89
+        Width = 330
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Top = 4
+        BorderSpacing.Bottom = 8
         MaxLength = 100
         OnChange = ItemChanged
         TabOrder = 3
       end
     end
     object tabNotes: TTabSheet
-      Caption = '&Notes'
-      ClientHeight = 280
-      ClientWidth = 433
-      ImageIndex = 3
-      object NoteEdit: TMemo
-        Left = 8
-        Height = 234
-        Top = 8
-        Width = 409
-        Anchors = [akTop, akLeft, akRight, akBottom]
+      Caption = 'tabNotes'
+      ClientHeight = 549
+      ClientWidth = 498
+      ImageIndex = 4
+      object memoNotes: TMemo
+        Left = 4
+        Height = 541
+        Top = 4
+        Width = 490
+        Align = alClient
+        BorderSpacing.Around = 4
+        Constraints.MinHeight = 300
         MaxLength = 1024
         ScrollBars = ssVertical
         TabOrder = 0
@@ -453,37 +1381,44 @@ object ContactEditForm: TContactEditForm
     end
   end
   object pnlBottom: TPanel
-    Height = 41
-    Top = 280
-    Width = 433
+    Left = 0
+    Height = 33
+    Top = 577
+    Width = 506
     Align = alBottom
+    AutoSize = True
     BevelOuter = bvNone
-    ClientHeight = 41
-    ClientWidth = 433
+    ClientHeight = 33
+    ClientWidth = 506
     TabOrder = 1
     object OKBtn: TButton
-      Left = 278
+      Left = 354
       Height = 25
-      Top = 9
-      Width = 75
-      Anchors = [akRight, akBottom]
+      Top = 4
+      Width = 74
+      Align = alRight
+      BorderSpacing.Top = 4
+      BorderSpacing.Right = 8
+      BorderSpacing.Bottom = 4
       Caption = 'OK'
       Default = True
       OnClick = OKBtnClick
       TabOrder = 0
-      TabStop = False
     end
     object CancelBtn: TButton
-      Left = 357
+      Left = 436
       Height = 25
-      Top = 9
-      Width = 75
-      Anchors = [akRight, akBottom]
+      Top = 4
+      Width = 62
+      Align = alRight
+      AutoSize = True
+      BorderSpacing.Top = 4
+      BorderSpacing.Right = 8
+      BorderSpacing.Bottom = 4
       Cancel = True
       Caption = 'Cancel'
       OnClick = CancelBtnClick
       TabOrder = 1
-      TabStop = False
     end
   end
 end

@@ -34,6 +34,9 @@ interface
 
 uses
   Classes,
+ {$IFDEF LCL}
+  LazUTF8Classes,
+ {$ENDIF}
   VpBase;
 
 
@@ -52,39 +55,36 @@ type
    method.}
   TVpMemoryStream = class(TMemoryStream)
   public
-    procedure SetPointer(Ptr : Pointer; Size : Longint);
+    procedure SetPointer(Ptr: Pointer; Size: Longint);
   end;
 
+ {$IFDEF LCL}
+  TVpFileStream = class(TFileStreamUTF8)
+ {$ELSE}
   TVpFileStream = class(TFileStream)
-    FFileName : string;
+ {$ENDIF}
+    FFileName: string;
   public
-    constructor CreateEx(Mode : Word; const FileName : string);
-
-    property Filename : string read FFileName;
+    constructor CreateEx(Mode: Word; const FileName: string);
+    property Filename: string read FFileName;
   end;
 
 { Utility methods }
-function VpPos(const aSubStr, aString : DOMString) : Integer;
-function VpRPos(const sSubStr, sTerm : DOMString) : Integer;
+function VpPos(const aSubStr, aString: DOMString): Integer;
+function VpRPos(const sSubStr, sTerm: DOMString): Integer;
+
 { character conversion routines }
-function VpIso88591ToUcs4(aInCh  : AnsiChar;
-                      var aOutCh : TVpUcs4Char) : Boolean;
-function VpUcs4ToIso88591(aInCh  : TVpUcs4Char;
-                      var aOutCh : AnsiChar) : Boolean;
-function VpUcs4ToWideChar(const aInChar : TVpUcs4Char;
-                            var aOutWS  : DOMChar) : Boolean;
-function VpUtf16ToUcs4(aInChI,
-                       aInChII   : DOMChar;
-                   var aOutCh    : TVpUcs4Char;
-                   var aBothUsed : Boolean) : Boolean;
-function VpUcs4ToUtf8(aInCh  : TVpUcs4Char;
-                  var aOutCh : TVpUtf8Char) : Boolean;
-function VpUtf8ToUcs4(const aInCh  : TVpUtf8Char;
-                            aBytes : Integer;
-                        var aOutCh : TVpUcs4Char) : Boolean;
+function VpIso88591ToUcs4(aInCh: AnsiChar; out aOutCh: TVpUcs4Char): Boolean;
+function VpUcs4ToIso88591(aInCh: TVpUcs4Char; out aOutCh: AnsiChar): Boolean;
+function VpUcs4ToWideChar(const aInChar: TVpUcs4Char; out aOutWS: DOMChar): Boolean;
+function VpUtf16ToUcs4(aInChI, aInChII: DOMChar; out aOutCh: TVpUcs4Char;
+  out aBothUsed: Boolean): Boolean;
+function VpUcs4ToUtf8(aInCh: TVpUcs4Char; out aOutCh: TVpUtf8Char): Boolean;
+function VpUtf8ToUcs4(const aInCh: TVpUtf8Char; aBytes: Integer;
+  out aOutCh: TVpUcs4Char): Boolean;
 
 { UTF specials }
-function VpGetLengthUtf8(const aCh : AnsiChar) : byte;
+function VpGetLengthUtf8(const aCh: AnsiChar): byte;
 
 { character classes }
 function VpIsBaseChar(aCh : TVpUcs4Char) : Boolean;
@@ -103,17 +103,22 @@ implementation
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,
+  LCLProc, LCLType,
   {$ELSE}
   Windows,
   {$ENDIF}
-  SysUtils;
+  SysUtils,
+  VpMisc;
 
 
 {== Utility methods ==================================================}
 function VpPos(const aSubStr, aString : DOMString) : Integer;
 begin
+ {$IFDEF DELPHI}
   Result := AnsiPos(aSubStr, aString);
+ {$ELSE}
+  Result := Pos(aSubStr, aString);
+ {$ENDIF}
 end;
 {--------}
 function VpRPos(const sSubStr, sTerm : DOMString) : Integer;
@@ -133,8 +138,7 @@ begin
   Result := 0;
 end;
 {===character conversion routines====================================}
-function VpIso88591ToUcs4(aInCh  : AnsiChar;
-                      var aOutCh : TVpUcs4Char) : boolean;
+function VpIso88591ToUcs4(aInCh: AnsiChar; out aOutCh: TVpUcs4Char): boolean;
 begin
   {Note: the conversion from ISO-8859-1 to UCS-4 is very simple: the
          result is the original character}
@@ -142,8 +146,7 @@ begin
   Result := true; {cannot fail}
 end;
 {--------}
-function VpUcs4ToIso88591(aInCh  : TVpUcs4Char;
-                      var aOutCh : AnsiChar) : Boolean;
+function VpUcs4ToIso88591(aInCh: TVpUcs4Char; out aOutCh: AnsiChar): Boolean;
 begin
   {Note: the conversion from UCS-4 to ISO-8859-1 is very simple: if
          the character is contained in a byte, the result is the
@@ -159,8 +162,7 @@ begin
   end;
 end;
 {--------}
-function VpUcs4ToWideChar(const aInChar : TVpUcs4Char;
-                            var aOutWS  : DOMChar) : Boolean;
+function VpUcs4ToWideChar(const aInChar: TVpUcs4Char; out aOutWS: DOMChar): Boolean;
 var
   Temp : Longint;
 begin
@@ -180,10 +182,8 @@ begin
   end;
 end;
 {--------}
-function VpUtf16ToUcs4(aInChI,
-                       aInChII   : DOMChar;
-                   var aOutCh    : TVpUcs4Char;
-                   var aBothUsed : Boolean) : Boolean;
+function VpUtf16ToUcs4(aInChI, aInChII: DOMChar; out aOutCh: TVpUcs4Char;
+  out aBothUsed: Boolean): Boolean;
 begin
   aBothUsed := False;
   if (aInChI < #$D800) or (aInChI > #$DFFF) then begin
@@ -203,8 +203,7 @@ begin
   end;
 end;
 {--------}
-function VpUcs4ToUtf8(aInCh  : TVpUcs4Char;
-                  var aOutCh : TVpUtf8Char) : Boolean;
+function VpUcs4ToUtf8(aInCh: TVpUcs4Char; out aOutCh: TVpUtf8Char): Boolean;
 begin
   aInCh := abs(aInCh);
   {if the UCS-4 value is $00 to $7f, no conversion is required}
@@ -262,13 +261,12 @@ begin
   Result := True; {cannot fail}
 end;
 {--------}
-function VpUtf8ToUcs4(const aInCh  : TVpUtf8Char;
-                            aBytes : Integer;
-                        var aOutCh : TVpUcs4Char) : Boolean;
+function VpUtf8ToUcs4(const aInCh: TVpUtf8Char; aBytes: Integer;
+  out aOutCh: TVpUcs4Char): Boolean;
 var
-  InFirstByte : AnsiChar;
-  InCharLen   : Integer;
-  i           : Integer;
+  InFirstByte: AnsiChar;
+  InCharLen: Integer;
+  i: Integer;
 begin
   InFirstByte := aInCh[1];
   InCharLen := Length(aInCh);
@@ -668,6 +666,7 @@ end;
 {==TVpMemoryStream===================================================}
 procedure TVpMemoryStream.SetPointer(Ptr : Pointer; Size : Integer);
 begin
+  Unused(Ptr, Size);
   Assert(not Assigned(Memory));
 //  inherited SetPointer(Ptr);
 end;

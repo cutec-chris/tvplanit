@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpDlg;
   {dialog components base classes}
@@ -38,7 +38,8 @@ uses
   Controls,
   {$ELSE}
   {$ENDIF}
-  Classes, Forms, Graphics, VpBase, VpBaseDS, VpData, VpConst, VpSR;
+  Classes, Forms, Graphics,
+  VpBase, VpBaseDS, VpConst, VpSR;
 
 type
   TVpDialogPosition = (mpCenter, mpCenterTop, mpCustom);
@@ -92,6 +93,9 @@ type
 
 
 implementation
+
+uses
+  VpMisc;
 
 constructor TVpBaseDialog.Create(AOwner : TComponent);
 var
@@ -154,6 +158,7 @@ end;
 
 procedure TVpBaseDialog.SetVersion(const Value: string);
 begin
+  Unused(Value);
 // This method left intentionally blank.
 end;
 {=====}

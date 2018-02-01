@@ -78,10 +78,8 @@ type
     function GetNextID(TableName: string): Integer; override;
     procedure Load; override;
     procedure CreateTable(TableName: string);
-    procedure CreateIndexDefs(const TableName : string;
-                                    IndexDefs : TIndexDefs); override;
-    procedure CreateFieldDefs(const TableName : string; FieldDefs : TFieldDefs);
-        override;
+    procedure CreateIndexDefs(const TableName : string; IndexDefs : TIndexDefs); override;
+    procedure CreateFieldDefs(const TableName : string; FieldDefs : TFieldDefs); override;
 
     procedure PostResources; override;
     procedure PostEvents; override;
@@ -369,7 +367,7 @@ begin
     CreateFieldDefs(TableName, Table.FieldDefs);
     CreateIndexDefs(TableName, Table.IndexDefs);
 
-        if Table <> nil then
+    if Table <> nil then
       Table.CreateTable;
 
     if TableName = RecordIDTableName then
@@ -574,6 +572,8 @@ var
   I: Integer;
   Event: TVpEvent;
   Qry: TDBISAMQuery;
+  F: TField;
+  FixedLoc, FixedLocP: String;
 begin
   if (Resource <> nil) and Resource.EventsDirty then begin
     Qry := TDBISAMQuery.Create(self);
@@ -599,6 +599,14 @@ begin
           Qry.ParamByName('ID').AsInteger := Event.RecordID;
           Qry.Open;
 
+          if Qry.FieldByName('Location') <> nil then begin    // new
+            FixedLoc := 'Location, ';
+            FixedLocP := ':Loc, ';
+          end else begin
+            FixedLoc := '';
+            FixedLocP := '';
+          end;
+
           if Qry.Locate('RecordID', Event.RecordID, [])
           then begin
             { existing record found }
@@ -609,17 +617,19 @@ begin
               Qry.FieldByName('EndTime').AsDateTime := Event.EndTime;
               Qry.FieldByName('ResourceID').AsInteger := Resource.ResourceID;
               Qry.FieldByName('Description').AsString := Event.Description;
-              Qry.FieldByName('Notes').AsString := Event.Note;
+              F := Qry.FieldByName('Location');  // new
+              if F <> nil then F.AsString := Event.Location;
+              Qry.FieldByName('Notes').AsString := Event.Notes;
               Qry.FieldByName('Category').AsInteger := Event.Category;
-              Qry.FieldByName('DingPath').AsString := Event.AlarmWavPath;
+              Qry.FieldByName('DingPath').AsString := Event.DingPath;
               Qry.FieldByName('AllDayEvent').AsBoolean := Event.AllDayEvent;
               Qry.FieldByName('AlarmSet').AsBoolean := Event.AlarmSet;
-              Qry.FieldByName('AlarmAdvance').AsInteger := Event.AlarmAdv;
-              Qry.FieldByName('AlarmAdvanceType').AsInteger := Ord(Event.AlarmAdvType);
+              Qry.FieldByName('AlarmAdvance').AsInteger := Event.AlarmAdvance;
+              Qry.FieldByName('AlarmAdvanceType').AsInteger := Ord(Event.AlarmAdvanceType);
               Qry.FieldByName('SnoozeTime').AsDateTime := Event.SnoozeTime;
               Qry.FieldByName('RepeatCode').AsInteger := Ord(Event.RepeatCode);
               Qry.FieldByName('RepeatRangeEnd').AsDateTime := Event.RepeatRangeEnd;
-              Qry.FieldByName('CustomInterval').AsInteger := Event.CustInterval;
+              Qry.FieldByName('CustomInterval').AsInteger := Event.CustomInterval;
               Qry.FieldByName('UserField0').AsString := Event.UserField0;
               Qry.FieldByName('UserField1').AsString := Event.UserField1;
               Qry.FieldByName('UserField2').AsString := Event.UserField2;
@@ -638,45 +648,46 @@ begin
           end else begin
             Qry.Close;
             Qry.SQL.Text := 'INSERT INTO Events '
-            + '(RecordID, StartTime, EndTime, ResourceID, Description, Notes, '
-            + 'SnoozeTime, Category, DingPath, AllDayEvent, AlarmSet, '
+            + '(RecordID, StartTime, EndTime, ResourceID, Description, ' + FixedLoc
+            + 'Notes, SnoozeTime, Category, DingPath, AllDayEvent, AlarmSet, '
             + 'AlarmAdvance, AlarmAdvanceType, RepeatCode, '
             + 'RepeatRangeEnd, CustomInterval, '
             + 'UserField0, UserField1, UserField2, UserField3, UserField4, '
             + 'UserField5, UserField6, UserField7, UserField8, UserField9) '
-            + 'VALUES(:RecID, :STime, :ETime, :ResID, :Desc, :Notes, :SnTime, '
-            + ':Cat, :DPath, :ADEvent, :ASet, :AAdvance, :AAdvanceType, '
-            + ':RCode, :RRangeEnd, :CInterval, :UserField0, '
+            + 'VALUES(:RecID, :STime, :ETime, :ResID, :Desc, ' + FixedLocP
+            + ':Notes, :SnTime, :Cat, :DPath, :ADEvent, :ASet, :AAdvance, '
+            + ':AAdvanceType, :RCode, :RRangeEnd, :CInterval, :UserField0, '
             + ':UserField1, :UserField2, :UserField3, :UserField4, '
             + ':UserField5, :UserField6, :UserField7, :UserField8, '
             + ':UserField9)';
 
-            Qry.ParamByName('RecID').AsInteger        := Event.RecordID;
-            Qry.ParamByName('STime').AsDateTime       := Event.StartTime;
-            Qry.ParamByName('ETime').AsDateTime       := Event.EndTime;
-            Qry.ParamByName('ResID').AsInteger        := Resource.ResourceID;
-            Qry.ParamByName('Desc').AsString          := Event.Description;
-            Qry.ParamByName('Notes').AsString         := Event.Note;
-            Qry.ParamByName('SnTime').AsDateTime      := Event.SnoozeTime;
-            Qry.ParamByName('Cat').AsInteger          := Event.Category;
-            Qry.ParamByName('DPath').AsString         := Event.AlarmWavPath;
-            Qry.ParamByName('ADEvent').AsBoolean      := Event.AllDayEvent;
-            Qry.ParamByName('ASet').AsBoolean         := Event.AlarmSet;
-            Qry.ParamByName('AAdvance').AsInteger     := Event.AlarmAdv;
-            Qry.ParamByName('AAdvanceType').AsInteger := Ord(Event.AlarmAdvType);
-            Qry.ParamByName('RCode').AsInteger        := Ord(Event.RepeatCode);
-            Qry.ParamByName('RRangeEnd').AsDateTime   := Event.RepeatRangeEnd;
-            Qry.ParamByName('CInterval').AsInteger    := Event.CustInterval;
-            Qry.ParamByName('UserField0').AsString    := Event.UserField0;
-            Qry.ParamByName('UserField1').AsString    := Event.UserField1;
-            Qry.ParamByName('UserField2').AsString    := Event.UserField2;
-            Qry.ParamByName('UserField3').AsString    := Event.UserField3;
-            Qry.ParamByName('UserField4').AsString    := Event.UserField4;
-            Qry.ParamByName('UserField5').AsString    := Event.UserField5;
-            Qry.ParamByName('UserField6').AsString    := Event.UserField6;
-            Qry.ParamByName('UserField7').AsString    := Event.UserField7;
-            Qry.ParamByName('UserField8').AsString    := Event.UserField8;
-            Qry.ParamByName('UserField9').AsString    := Event.UserField9;
+            Qry.ParamByName('RecID').AsInteger := Event.RecordID;
+            Qry.ParamByName('STime').AsDateTime := Event.StartTime;
+            Qry.ParamByName('ETime').AsDateTime := Event.EndTime;
+            Qry.ParamByName('ResID').AsInteger := Resource.ResourceID;
+            Qry.ParamByName('Desc').AsString := Event.Description;
+            if FixedLocP <> '' then Qry.ParamByName('Loc').AsString := Event.Location;
+            Qry.ParamByName('Notes').AsString := Event.Note;
+            Qry.ParamByName('SnTime').AsDateTime := Event.SnoozeTime;
+            Qry.ParamByName('Cat').AsInteger := Event.Category;
+            Qry.ParamByName('DPath').AsString := Event.DingPath;
+            Qry.ParamByName('ADEvent').AsBoolean := Event.AllDayEvent;
+            Qry.ParamByName('ASet').AsBoolean := Event.AlarmSet;
+            Qry.ParamByName('AAdvance').AsInteger := Event.AlarmAdvance;
+            Qry.ParamByName('AAdvanceType').AsInteger := Ord(Event.AlarmAdvanceType);
+            Qry.ParamByName('RCode').AsInteger := Ord(Event.RepeatCode);
+            Qry.ParamByName('RRangeEnd').AsDateTime := Event.RepeatRangeEnd;
+            Qry.ParamByName('CInterval').AsInteger := Event.CustomInterval;
+            Qry.ParamByName('UserField0').AsString := Event.UserField0;
+            Qry.ParamByName('UserField1').AsString := Event.UserField1;
+            Qry.ParamByName('UserField2').AsString := Event.UserField2;
+            Qry.ParamByName('UserField3').AsString := Event.UserField3;
+            Qry.ParamByName('UserField4').AsString := Event.UserField4;
+            Qry.ParamByName('UserField5').AsString := Event.UserField5;
+            Qry.ParamByName('UserField6').AsString := Event.UserField6;
+            Qry.ParamByName('UserField7').AsString := Event.UserField7;
+            Qry.ParamByName('UserField8').AsString := Event.UserField8;
+            Qry.ParamByName('UserField9').AsString := Event.UserField9;
 
             Qry.ExecSQL;
           end;
@@ -705,6 +716,8 @@ var
   I: Integer;
   Contact: TVpContact;
   Qry: TDBISAMQuery;
+  F: TField;
+  FixedNote, FixedNoteP: String;
 begin
   if (Resource <> nil) and Resource.ContactsDirty then begin
     { Dump this resource's dirty contacts to the DB }
@@ -732,6 +745,15 @@ begin
           Qry.ParamByName('ID').AsInteger := Contact.RecordID;
           Qry.Open;
 
+          if Qry.FieldByName('Notes') <> nil then begin
+            FixedNote := 'Notes, '; FixedNoteP := ':Note, ';
+          end else
+          if Qry.FieldByName('Note') <> nil then begin
+            FixedNote := 'Note, '; FixedNoteP := ':Notes, ';
+          end else begin
+            FixedNote := ''; FixedNoteP := '';
+          end;
+
           if Qry.Locate('RecordID', Contact.RecordID, [])
           then begin
             { existing record found }
@@ -743,14 +765,16 @@ begin
               Qry.FieldByName('LastName').AsString := Contact.LastName;
               Qry.FieldByName('Title').AsString := Contact.Title;
               Qry.FieldByName('Company').AsString := Contact.Company;
-              Qry.FieldByName('Job_Position').AsString := Contact.Position;
+              Qry.FieldByName('Job_Position').AsString := Contact.Job_Position;
               Qry.FieldByName('EMail').AsString := Contact.EMail;
               Qry.FieldByName('Address').AsString := Contact.Address;
               Qry.FieldByName('City').AsString := Contact.City;
               Qry.FieldByName('State').AsString := Contact.State;
               Qry.FieldByName('Zip').AsString := Contact.Zip;
               Qry.FieldByName('Country').AsString := Contact.Country;
-              Qry.FieldByName('Note').AsString := Contact.Note;
+              F := Qry.FieldByName('Notes');
+              if F = nil then F := Qry.FieldByName('Note');  // deprecated
+              if F <> nil then F.AsString := Contact.Notes;
               Qry.FieldByName('Phone1').AsString := Contact.Phone1;
               Qry.FieldByName('Phone2').AsString := Contact.Phone2;
               Qry.FieldByName('Phone3').AsString := Contact.Phone3;
@@ -786,7 +810,7 @@ begin
             Qry.SQL.Text := 'INSERT INTO Contacts '
             + '(ResourceID, RecordID, FirstName, LastName, Title, Company, '
             + 'Job_Position, EMail, Address, City, State, Zip, Country, '
-            + 'Note, Phone1, Phone2, Phone3, Phone4, Phone5, PhoneType1, '
+            + FixedNote + 'Phone1, Phone2, Phone3, Phone4, Phone5, PhoneType1, '
             + 'PhoneType2, PhoneType3, PhoneType4, PhoneType5, Category, '
             + 'Custom1, Custom2, Custom3, Custom4, UserField0, UserField1, '
             + 'UserField2, UserField3, UserField4, UserField5, UserField6, '
@@ -794,7 +818,7 @@ begin
 
             + 'VALUES(:ResourceID, :RecordID, :FirstName, :LastName, :Title, '
             + ':Company, :Job_Position, :EMail, :Address, :City, :State, :Zip, '
-            + ':Country, :Note, :Phone1, :Phone2, :Phone3, :Phone4, :Phone5, '
+            + ':Country, ' + FixedNoteP + ':Phone1, :Phone2, :Phone3, :Phone4, :Phone5, '
             + ':PhoneType1, :PhoneType2, :PhoneType3, :PhoneType4, :PhoneType5, '
             + ':Category, :Custom1, :Custom2, :Custom3, :Custom4, :UserField0, '
             + ':UserField1, :UserField2, :UserField3, :UserField4, :UserField5, '
@@ -806,14 +830,14 @@ begin
             Qry.ParamByName('LastName').AsString := Contact.LastName;
             Qry.ParamByName('Title').AsString := Contact.Title;
             Qry.ParamByName('Company').AsString := Contact.Company;
-            Qry.ParamByName('Job_Position').AsString := Contact.Position;
+            Qry.ParamByName('Job_Position').AsString := Contact.Job_Position;
             Qry.ParamByName('EMail').AsString := Contact.EMail;
             Qry.ParamByName('Address').AsString := Contact.Address;
             Qry.ParamByName('City').AsString := Contact.City;
             Qry.ParamByName('State').AsString := Contact.State;
             Qry.ParamByName('Zip').AsString := Contact.Zip;
             Qry.ParamByName('Country').AsString := Contact.Country;
-            Qry.ParamByName('Note').AsString := Contact.Note;
+            if FixedNoteP <> '' then Qry.ParamByName('Notes').AsString := Contact.Notes;
             Qry.ParamByName('Phone1').AsString := Contact.Phone1;
             Qry.ParamByName('Phone2').AsString := Contact.Phone2;
             Qry.ParamByName('Phone3').AsString := Contact.Phone3;
@@ -1292,7 +1316,7 @@ begin
         Size := 250;
         Required := false;
       end;
-      { Description }
+      { Notes }
       with AddFieldDef do begin
         Name := 'Notes';
         DataType := ftMemo;
@@ -1415,7 +1439,14 @@ begin
         Size := 250;
         Required := false;
       end;
-      { Note }
+      { Locataion }              // new
+      with AddFieldDef do begin
+        Name := 'Location';
+        DataType := ftString;
+        Size := 255;
+        Required := false;
+      end;
+      { Notes }
       with AddFieldDef do begin
         Name := 'Notes';
         DataType := ftMemo;

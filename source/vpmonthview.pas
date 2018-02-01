@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpMonthView;
 
@@ -34,12 +34,12 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,FileUtil,LazFileUtils,LazUTF8,
+  LMessages, LCLProc, LCLType, LCLIntf, FileUtil,
   {$ELSE}
-  Windows,Messages,
+  Windows, Messages,
   {$ENDIF}
-  Classes, Graphics, Controls, ComCtrls, ExtCtrls, StdCtrls,
-  VpBase, VpBaseDS, VpMisc, VpData, VpSR, VpConst, VpCanvasUtils, Menus;
+  Classes, Graphics, Controls, ComCtrls, ExtCtrls, Forms, Menus,
+  VpConst, VpBase, VpBaseDS, VpMisc, VpData, VpSR, VpCanvasUtils;
 
 type
   TVpMonthdayRec = packed record
@@ -56,268 +56,404 @@ type
 
   TVpMVDayNameStyle = (dsLong, dsShort, dsLetter);
 
-  TVpOnEventClick =                                                      
-    procedure(Sender: TObject; Event: TVpEvent) of object;               
+  TVpOnEventClick = procedure(Sender: TObject; Event: TVpEvent) of object;
+
+  TVpMonthViewAttr = class(TPersistent)
+  private
+    FMonthView: TVpMonthView;
+    FColor: TColor;
+    FFont: TVpFont;
+    procedure SetColor(AValue: TColor);
+    procedure SetFont(AValue: TVpFont);
+  public
+    constructor Create(AOwner: TVpMonthView);
+    destructor Destroy; override;
+    property MonthView: TVpMonthView read FMonthVIew;
+  published
+    property Font: TVpFont read FFont write SetFont;
+    property Color: TColor read FColor write SetColor;
+  end;
+
+  TVpMvHolidayAttr = class(TVpMonthViewAttr)
+  public
+    constructor Create(AOwner: TVpMonthView);
+  published
+    property Color default HOLIDAY_COLOR;
+  end;
+
+  TVpMvWeekendAttr = class(TVpMonthViewAttr)
+  public
+    constructor Create(AOwner: TVpMonthView);
+  published
+    property Color default WEEKEND_COLOR;
+  end;
+
+  (*
+  TVpMvHeadAttr = class(TPersistent)
+  protected{ private }
+    FOwner: TVpMonthView;
+    FColor: TColor;
+    FFont: TVpFont;
+    procedure SetColor(const Value: TColor);
+    procedure SetFont(Value: TVpFont);
+  public
+    constructor Create(AOwner: TVpMonthView);
+    destructor Destroy; override;
+    property Owner: TVpMonthView read FOwner;
+  published
+    property Font: TVpFont read FFont write SetFont;
+    property Color: TColor read FColor write SetColor;
+  end;
 
   TVpDayHeadAttr = class(TPersistent)
   protected{private}
     FMonthView: TVpMonthView;
-    FFont: TFont;
+    FFont: TVpFont;
     FColor: TColor;
-    procedure SetColor (Value: TColor);
-    procedure SetFont (Value: TFont);
+    procedure SetColor(Value: TColor);
+    procedure SetFont(Value: TVpFont);
   public
     constructor Create(AOwner: TVpMonthView);
     destructor Destroy; override;
     property MonthView: TVpMonthView read FMonthView;
   published
     property Color: TColor read FColor write SetColor;
-    property Font: TFont read FFont write SetFont;
+    property Font: TVpFont read FFont write SetFont;
   end;
+    *)
+  TVpMvTodayAttr = class(TVpMonthViewAttr)
+  protected
+    FBorderPen: TPen;
+    procedure SetBorderPen(Value: TPen);
+  public
+    constructor Create(AOwner: TVpMonthView);
+    destructor Destroy; override;
+  published
+    property BorderPen: TPen read FBorderPen write SetBorderPen;
+  end;
+
 
   { TVpMonthView }
 
   TVpMonthView = class(TVpLinkableControl)
+  private
+    FComponentHint: TTranslateString;
+    FHintMode: TVpHintMode;
+    FOnHoliday: TVpHolidayEvent;
+    FAllowDragAndDrop: Boolean;
+    FDragDropTransparent: Boolean;
   protected{ private }
-    FKBNavigate        : Boolean;
-    FColumnWidth       : Integer;
-    FColor             : TColor;
-    FLineColor         : TColor;
-    FLineCount         : Integer;
-    FVisibleLines      : Integer;
-    FDayNameStyle      : TVpMVDayNameStyle;
-    FOffDayColor       : TColor;
-    FSelectedDayColor  : TColor;
-    FWeekStartsOn      : TVpDayType;
-    FShowEvents        : Boolean;
-    FEventDayStyle     : TFontStyles;
-    FDateLabelFormat   : string;
-    FShowEventTime     : Boolean;
-    FTopLine           : Integer;
-    FDayHeadAttributes : TVpDayHeadAttr;
-    FDayNumberFont     : TFont;
-    FEventFont         : TFont;
-    FTimeFormat        : TVpTimeFormat;
-    FDrawingStyle      : TVpDrawingStyle;
-    FDate              : TDateTime;
-    FDefaultPopup      : TPopupMenu;
-    FRightClickChangeDate : Boolean;                                     
+    FKBNavigate: Boolean;
+    FColumnWidth: Integer;
+    FColor: TColor;
+    FLineColor: TColor;
+    FLineCount: Integer;
+    FVisibleLines: Integer;
+    FDayNameStyle: TVpMVDayNameStyle;
+    FOffDayColor: TColor;
+    FOffDayFontColor: TColor;
+    FSelectedDayColor: TColor;
+    FWeekStartsOn: TVpDayType;
+    FShowEvents: Boolean;
+    FEventDayStyle: TFontStyles;
+    FDateLabelFormat: string;
+    FShowEventTime: Boolean;
+    FTopLine: Integer;
+    FDayHeadAttr: TVpMonthViewAttr;
+    FHeadAttr: TVpMonthViewAttr;
+    FHolidayAttr: TVpMvHolidayAttr;
+    FTodayAttr: TVpMvTodayAttr;
+    FWeekendAttr: TVpMvWeekendAttr;
+    FDayNumberFont: TVpFont;
+    FEventFont: TVpFont;
+    FTimeFormat: TVpTimeFormat;
+    FDrawingStyle: TVpDrawingStyle;
+    FDate: TDateTime;
+    FDefaultPopup: TPopupMenu;
+    FRightClickChangeDate: Boolean;
+    FMouseDate: TDateTime;
+
     { event variables }
-    FOwnerDrawCells    : TVpOwnerDrawDayEvent;
-    FOnEventClick      : TVpOnEventClick;                                
-    FOnEventDblClick   : TVpOnEventClick;                                
+    FOnAddEvent: TVpOnAddNewEvent;
+    FOwnerDrawCells: TVpOwnerDrawDayEvent;
+    FOwnerEditEvent: TVpEditEvent;
+    FOnEventClick: TVpOnEventClick;
+    FOnEventDblClick: TVpOnEventClick;
+
     { internal variables }
-    mvDayNumberHeight  : Integer;
-    mvEventTextHeight  : Integer;
-    mvLoaded           : Boolean;
-    mvInLinkHandler    : Boolean;
-    mvRowHeight        : Integer;
-    mvLineHeight       : Integer;
-    mvColWidth         : Integer;
-    mvDayHeadHeight    : Integer;
-    mvSpinButtons      : TUpDown;
-    mvEventArray       : TVpEventArray;
-    mvMonthDayArray    : TVpMonthdayArray;
-    mvActiveEvent      : TVpEvent;
-    mvActiveEventRec   : TRect;
-    mvEventList        : TList;
-    mvCreatingEditor   : Boolean;
-    mvPainting         : Boolean;
-    mvVScrollDelta     : Integer;
-    mvHotPoint         : TPoint;
-    mvVisibleEvents    : Integer;                                        
+    mvLoaded: Boolean;
+    mvDayHeadHeight: Integer;
+    mvSpinButtons: TUpDown;
+    mvEventArray: TVpEventArray;
+    mvMonthDayArray: TVpMonthdayArray;
+    mvActiveEvent: TVpEvent;
+    mvActiveEventRec: TRect;
+    mvDragging: Boolean;
+    mvMouseDown: Boolean;
+    mvMouseDownPoint: TPoint;
+//    wvHotPoint: TPoint;
 
     { property methods }
     procedure SetDrawingStyle(Value: TVpDrawingStyle);
     procedure SetColor(Value: TColor);
     procedure SetLineColor(Value: TColor);
     procedure SetOffDayColor(Value: TColor);
+    procedure SetOffDayFontColor(Value: TColor);
     procedure SetDateLabelFormat(Value: string);
     procedure SetShowEvents(Value: Boolean);
     procedure SetEventDayStyle(Value: TFontStyles);
     procedure SetDayNameStyle(Value: TVpMVDayNameStyle);
-    procedure SetDayNumberFont(Value: TFont);
-    procedure SetEventFont(Value: TFont);
+    procedure SetDayNumberFont(Value: TVpFont);
+    procedure SetEventFont(Value: TVpFont);
     procedure SetSelectedDayColor(Value: TColor);
     procedure SetShowEventTime(Value: Boolean);
     procedure SetTimeFormat(Value: TVpTimeFormat);
     procedure SetDate(Value: TDateTime);
-    procedure SetRightClickChangeDate (const v : Boolean);               
+    procedure SetRightClickChangeDate(const v: Boolean);
     procedure SetWeekStartsOn(Value: TVpDayType);
-    { internal methods }
-    procedure mvHookUp;
-    procedure mvFontChanged(Sender: TObject);
 
-    procedure Paint; override;
-    procedure Loaded; override;
-    procedure InitializeDefaultPopup;
+    { internal methods }
+    function GetDateAtCoord(APoint: TPoint): TDateTime;
     procedure mvPopulate;
+    procedure mvSpawnEventEditDialog(NewEvent: Boolean);
     procedure mvSpinButtonClick(Sender: TObject; Button: TUDBtnType);
+    procedure mvSetDateByCoord(APoint: TPoint);
+    procedure mvHookUp;
+    procedure mvPenChanged(Sender: TObject);
+    function SelectEventAtCoord(Point: TPoint): Boolean;
+
+    { inherited methods }
     procedure CreateParams(var Params: TCreateParams); override;
     procedure CreateWnd; override;
-    {$IFNDEF LCL}
-    procedure WMLButtonDown(var Msg : TWMLButtonDown);
-      message WM_LBUTTONDOWN;
-    procedure WMLButtonDblClick(var Msg: TWMLButtonDblClk);              
-      message WM_LBUTTONDBLCLK;                                          
-    {$ELSE}
-    procedure WMLButtonDown(var Msg : TLMLButtonDown);
-      message LM_LBUTTONDOWN;
-    procedure WMLButtonDblClick(var Msg: TLMLButtonDblClk);
-      message LM_LBUTTONDBLCLK;
-    {$ENDIF}
-    { - renamed from EditEventAtCoord and re-written}
-    function  SelectEventAtCoord(Point: TPoint): Boolean;
-    procedure mvSetDateByCoord(Point: TPoint);
+    procedure Loaded; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseEnter; override;
+    procedure MouseLeave; override;
+    procedure MouseMove(Shift: TShiftState; X,Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure Paint; override;
+
+    { drag and drop }
+    procedure DoEndDrag(Target: TObject; X, Y: Integer); override;
+    procedure DoStartDrag(var DragObject: TDragObject); override;
+    procedure DragOver(Source: TObject; X, Y: Integer; State: TDragState;
+      var Accept: Boolean); override;
+
     { message handlers }
     {$IFNDEF LCL}
+    procedure WMLButtonDown(var Msg: TWMLButtonDown); message WM_LBUTTONDOWN;
+    procedure WMLButtonDblClick(var Msg: TWMLButtonDblClk);message WM_LBUTTONDBLCLK;
     procedure WMSize(var Msg: TWMSize); message WM_SIZE;
-    procedure WMSetFocus(var Msg : TWMSetFocus); message WM_SETFOCUS;
-    procedure WMRButtonDown(var Msg : TWMRButtonDown); message WM_RBUTTONDOWN;
+    procedure WMSetFocus(var Msg: TWMSetFocus); message WM_SETFOCUS;
+    procedure WMRButtonDown(var Msg: TWMRButtonDown); message WM_RBUTTONDOWN;
     procedure CMWantSpecialKey(var Msg: TCMWantSpecialKey);
       message CM_WANTSPECIALKEY;
     {$ELSE}
+    procedure WMLButtonDown(var Msg: TLMLButtonDown); message LM_LBUTTONDOWN;
+    procedure WMLButtonDblClick(var Msg: TLMLButtonDblClk); message LM_LBUTTONDBLCLK;
     procedure WMSize(var Msg: TLMSize); message LM_SIZE;
-    procedure WMSetFocus(var Msg : TLMSetFocus); message LM_SETFOCUS;
-    procedure WMRButtonDown(var Msg : TLMRButtonDown); message LM_RBUTTONDOWN;
+    procedure WMSetFocus(var Msg: TLMSetFocus); message LM_SETFOCUS;
+    procedure WMRButtonDown(var Msg: TLMRButtonDown); message LM_RBUTTONDOWN;
     {$ENDIF}
-    procedure PopupToday (Sender : TObject);
-    procedure PopupNextMonth (Sender : TObject);
-    procedure PopupPrevMonth (Sender : TObject);
-    procedure PopupNextYear (Sender : TObject);
-    procedure PopupPrevYear (Sender : TObject);
+
+    { Hints }
+    procedure ShowHintWindow(APoint: TPoint; ADate: TDateTime);
+    procedure HideHintWindow;
+    procedure SetHint(const AValue: TTranslateString); override;
+
+    { Popup menu }
+    procedure InitializeDefaultPopup;
+    procedure PopupToday(Sender: TObject);
+    procedure PopupNextMonth(Sender: TObject);
+    procedure PopupPrevMonth(Sender: TObject);
+    procedure PopupNextYear(Sender: TObject);
+    procedure PopupPrevYear(Sender: TObject);
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    function BuildEventString(AEvent: TVpEvent;
+      AShowEventTime, AStartTimeOnly: Boolean): String;
+    procedure DragDrop(Source: TObject; X, Y: Integer); override;
     procedure LoadLanguage;
     procedure Invalidate; override;
+    function IsHoliday(ADate: TDate; out AHolidayName: String): Boolean;
     procedure LinkHandler(Sender: TComponent;
-      NotificationType: TVpNotificationType;
-      const Value: Variant); override;
-    function GetControlType : TVpItemType; override;
-    procedure PaintToCanvas (ACanvas : TCanvas;
-                             ARect   : TRect;
-                             Angle   : TVpRotationAngle;
-                             ADate   : TDateTime);
-    procedure RenderToCanvas (RenderCanvas : TCanvas;
-                              RenderIn     : TRect;
-                              Angle        : TVpRotationAngle;
-                              Scale        : Extended;
-                              RenderDate   : TDateTime;
-                              StartLine    : Integer;
-                              StopLine     : Integer;
-                              UseGran      : TVpGranularity;
-                              DisplayOnly  : Boolean); override;
+      NotificationType: TVpNotificationType; const Value: Variant); override;
+    function GetControlType: TVpItemType; override;
+    procedure PaintToCanvas(ACanvas: TCanvas; ARect: TRect; Angle: TVpRotationAngle;
+      ADate: TDateTime);
+    procedure RenderToCanvas(RenderCanvas: TCanvas; RenderIn: TRect;
+      Angle: TVpRotationAngle; Scale: Extended; RenderDate: TDateTime;
+      StartLine, StopLine: Integer; UseGran: TVpGranularity;
+      DisplayOnly: Boolean); override;
+
+    {$IF VP_LCL_SCALING = 2}
+    procedure ScaleFontsPPI(const AToPPI: Integer; const AProportion: Double); override;
+    {$ELSEIF VP_LCL_SCALING = 1}
+    procedure ScaleFontsPPI(const AProportion: Double); override;
+    {$ENDIF}
 
     property Date: TDateTime read FDate write SetDate;
+
   published
     { inherited properties }
     property Align;
     property Anchors;
     property TabStop;
     property TabOrder;
-    property KBNavigation: Boolean
-      read FKBNavigate write FKBNavigate;
-    property Color: TColor
-      read FColor write SetColor;
-    property DateLabelFormat:
-      string read FDateLabelFormat write SetDateLabelFormat;
-    property DayHeadAttributes: TVpDayHeadAttr
-      read FDayHeadAttributes write FDayHeadAttributes;
-    property DayNameStyle: TVpMVDayNameStyle
-      read FDayNameStyle write SetDayNameStyle;
-    property DayNumberFont: TFont
-      read FDayNumberFont write SetDayNumberFont;
-    property DrawingStyle: TVpDrawingStyle
-      read FDrawingStyle write SetDrawingStyle stored True;
-    property EventDayStyle: TFontStyles
-      read FEventDayStyle write SetEventDayStyle;
-    property EventFont: TFont
-      read FEventFont write SetEventFont;
-    property LineColor: TColor
-      read FLineColor write SetLineColor;
-    property TimeFormat: TVpTimeFormat
-      read FTimeFormat write SetTimeFormat;
-    property OffDayColor: TColor
-      read FOffDayColor write SetOffDayColor;
-    property OwnerDrawCells: TVpOwnerDrawDayEvent
-      read FOwnerDrawCells write FOwnerDrawCells;
-    property RightClickChangeDate : Boolean                              
-             read FRightClickChangeDate write SetRightClickChangeDate    
-             default vpDefWVRClickChangeDate;                            
-    property SelectedDayColor: TColor
-      read FSelectedDayColor write SetSelectedDayColor;
-    property ShowEvents: Boolean
-      read FShowEvents write SetShowEvents;
-    property ShowEventTime: Boolean
-      read FShowEventTime write SetShowEventTime;
-    property WeekStartsOn : TVpDayType
-      read FWeekStartsOn write SetWeekStartsOn;
+    property AllowDragAndDrop: Boolean read FAllowDragAndDrop write FAllowDragAndDrop default false;
+    property Color: TColor read FColor write SetColor;
+    property DateLabelFormat: string read FDateLabelFormat write SetDateLabelFormat;
+    property DayHeadAttributes: TVpMonthviewAttr read FDayHeadAttr write FDayHeadAttr;
+    property DayNameStyle: TVpMVDayNameStyle read FDayNameStyle write SetDayNameStyle;
+    property DayNumberFont: TVpFont read FDayNumberFont write SetDayNumberFont;
+    property DragDropTransparent: Boolean read FDragDropTransparent write FDragDropTransparent default false;
+    property DrawingStyle: TVpDrawingStyle read FDrawingStyle write SetDrawingStyle stored True;
+    property EventDayStyle: TFontStyles read FEventDayStyle write SetEventDayStyle;
+    property EventFont: TVpFont read FEventFont write SetEventFont;
+//    property HeadAttributes: TVpMvHeadAttr read FHeadAttr write FHeadAttr;
+    property HeadAttributes: TVpMonthViewAttr read FHeadAttr write FHeadAttr;
+    property HolidayAttributes: TVpMvHolidayAttr read FHolidayAttr write FHolidayAttr;
+    property HintMode: TVpHintMode read FHintMode write FHintMode default hmPlannerHint;
+    property KBNavigation: Boolean read FKBNavigate write FKBNavigate;
+    property LineColor: TColor read FLineColor write SetLineColor default clGray;
+    property OffDayColor: TColor read FOffDayColor write SetOffDayColor default OFF_COLOR;
+    property OffDayFontColor: TColor read FOffDayFontColor write SetOffDayFontColor default clGray;
+    property OwnerDrawCells: TVpOwnerDrawDayEvent read FOwnerDrawCells write FOwnerDrawCells;
+    property RightClickChangeDate: Boolean
+      read FRightClickChangeDate write SetRightClickChangeDate default vpDefWVRClickChangeDate;
+    property SelectedDayColor: TColor read FSelectedDayColor write SetSelectedDayColor;
+    property ShowEvents: Boolean read FShowEvents write SetShowEvents;
+    property ShowEventTime: Boolean read FShowEventTime write SetShowEventTime;
+    property TimeFormat: TVpTimeFormat read FTimeFormat write SetTimeFormat;
+    property TodayAttributes: TVpMvTodayAttr read FTodayAttr write FTodayAttr;
+    property WeekendAttributes: TVpMvWeekendAttr read FWeekendAttr write FWeekendAttr;
+    property WeekStartsOn: TVpDayType read FWeekStartsOn write SetWeekStartsOn;
     {events}
-    property OnEventClick: TVpOnEventClick                               
-      read FOnEventClick write FOnEventClick;                            
-    property OnEventDblClick: TVpOnEventClick                            
-      read FOnEventDblClick write FOnEventDblClick;
+    property OnAddEvent: TVpOnAddNewEvent read FOnAddEvent write FOnAddEvent;
+    property OnEventClick: TVpOnEventClick read FOnEventClick write FOnEventClick;
+    property OnEventDblClick: TVpOnEventClick read FOnEventDblClick write FOnEventDblClick;
+    property OnHoliday: TVpHolidayEvent read FOnHoliday write FOnHoliday;
+    property OnOwnerEditEvent: TVpEditEvent read FOwnerEditEvent write FOwnerEditEvent;
     property OnDblClick;
   end;
+
 
 implementation
 
 uses
-  SysUtils, Math, Forms, Dialogs, VpEvntEditDlg;
+ {$IFDEF LCL}
+  DateUtils,
+ {$ENDIF}
+  SysUtils, LazUTF8, Dialogs, StrUtils,
+  VpMonthViewPainter, VpEvntEditDlg;
 
 (*****************************************************************************)
-{ TVpContactHeadAttr }
-constructor TVpDayHeadAttr.Create(AOwner: TVpMonthView);
+{ TVpMonthViewAttr                                                            }
+(*****************************************************************************)
+constructor TVpMonthViewAttr.Create(AOwner: TVpMonthView);
 begin
   inherited Create;
   FMonthView := AOwner;
-  FFont := TFont.Create;
-  FFont.Assign(FMonthView.Font);
-  FFont.Size := 8;
-  FColor := clSilver;
+  FColor := clBtnFace;
+  FFont := TVpFont.Create(AOwner);
 end;
-{=====}
 
-destructor TVpDayHeadAttr.Destroy;
+destructor TVpMonthViewAttr.Destroy;
 begin
   FFont.Free;
+  inherited;
 end;
-{=====}
 
-procedure TVpDayHeadAttr.SetColor(Value: TColor);
+procedure TVpMonthViewAttr.SetColor(AValue: TColor);
 begin
-  if Value <> FColor then begin
-    FColor := Value;
-    MonthView.Invalidate;
+  if FColor <> AValue then begin
+    FColor := AValue;
+    FMonthView.Invalidate;
   end;
 end;
-{=====}
 
-procedure TVpDayHeadAttr.SetFont(Value: TFont);
+procedure TVpMonthViewAttr.SetFont(AValue: TVpFont);
 begin
-  if Value <> FFont then begin
-    FFont.Assign(Value);
-    MonthView.Invalidate;
-  end;
+  FFont.Assign(AValue);
 end;
-{=====}
+
 
 (*****************************************************************************)
-{ TVpMonthView }
+{ TVpMvHolidayAttr                                                            }
+(*****************************************************************************)
+constructor TVpMvHolidayAttr.Create(AOwner: TVpMonthView);
+begin
+  inherited Create(AOwner);
+  FColor := HOLIDAY_COLOR;
+end;
 
+
+(*****************************************************************************)
+{ TVpMvWeekendAttr                                                            }
+(*****************************************************************************)
+constructor TVpMvWeekendAttr.Create(AOwner: TVpMonthView);
+begin
+  inherited Create(AOwner);
+  FColor := WEEKEND_COLOR;
+end;
+
+
+(*****************************************************************************)
+{ TVpMvTodayAttr                                                              }
+(*****************************************************************************)
+constructor TVpMvTodayAttr.Create(AOwner: TVpMonthView);
+begin
+  inherited Create(AOwner);
+  FBorderPen := TPen.Create;
+  FBorderPen.Color := clRed;
+  FBorderPen.Width := 3;
+  FBorderPen.OnChange := FMonthView.mvPenChanged;
+end;
+
+destructor TVpMvTodayAttr.Destroy;
+begin
+  FBorderPen.Free;
+  inherited;
+end;
+
+procedure TVpMvTodayAttr.SetBorderPen(Value: TPen);
+begin
+  if Value <> FBorderPen then begin
+    FBorderPen.Assign(Value);
+    MonthView.Invalidate;
+  end;
+end;
+
+
+(*****************************************************************************)
+{ TVpMonthView                                                                }
+(*****************************************************************************)
 constructor TVpMonthView.Create(AOwner: TComponent);
 begin
   inherited;
   ControlStyle := [csCaptureMouse, csOpaque, csDoubleClicks];
+  HintWindowClass := TVpHintWindow;
 
   { Create internal classes and stuff }
-  FDayHeadAttributes := TVpDayHeadAttr.Create(self);
-  mvEventList := TList.Create;
+  FHeadAttr := TVpMonthViewAttr.Create(self);
+  FDayHeadAttr := TVpMonthViewAttr.Create(self);
+  FHolidayAttr := TVpMvHolidayAttr.Create(self);
+  FWeekendAttr := TVpMvWeekendAttr.Create(self);
+  FTodayAttr := TVpMvTodayAttr.Create(Self);
   mvSpinButtons := TUpDown.Create(self);
 
-  { Set styles and initialize internal variables }
+  {
+  FHeadAttr := TVpMvHeadAttr.Create(self);
+  FDayHeadAttr := TVpDayHeadAttr.Create(self);
+  FTodayAttr := TVpMvTodayAttr.Create(self);
+  FHolidayAttr := TvpMvHolidayAttr.Create(self);
+  mvSpinButtons := TUpDown.Create(self);
+   }
+
+   { Set styles and initialize internal variables }
   {$IFDEF VERSION4}
   DoubleBuffered := true;
   {$ENDIF}
@@ -326,38 +462,48 @@ begin
   FShowEventTime := false;
   FDayNameStyle :=dsShort;
   FKBNavigate := true;
-  mvInLinkHandler := false;
   mvSpinButtons.OnClick := mvSpinButtonClick;
   mvSpinButtons.Orientation := udHorizontal;
   mvSpinButtons.Min := -32768;
   mvSpinButtons.Max := 32767;
-  mvCreatingEditor := false;
+
+  mvDragging := false;
+  mvMouseDownPoint := Point(0, 0);
+  mvMouseDown := false;
+  DragMode := dmManual;
+
+  //  mvCreatingEditor := false;
   FSelectedDayColor := clRed;
   FDrawingStyle := ds3d;
-  mvPainting := false;
+//  mvPainting := false;
   FColor := clWindow;
-  FOffDayColor := clSilver;
   FLineColor := clGray;
   FDate := Trunc(Now);
   FTimeFormat := tf12Hour;
   FDateLabelFormat := 'mmmm yyyy';
   FColumnWidth := 200;
-  FRightClickChangeDate := vpDefWVRClickChangeDate;                      
-  mvVisibleEvents := 0;                                                  
+  FRightClickChangeDate := vpDefWVRClickChangeDate;
+//  mvVisibleEvents := 0;
 
   { set up fonts and colors }
-  FDayHeadAttributes.Font.Name := 'Tahoma';
-  FDayHeadAttributes.Font.Size := 10;
-  FDayHeadAttributes.Font.Style := [];
-  FDayHeadAttributes.Color := clBtnFace;
+//  FDayHeadAttributes.Font.Name := 'Tahoma';   wp: better use defaults
+//  FDayHeadAttributes.Font.Size := 10;
+//  FDayHeadAttributes.Font.Style := [];
+  FDayHeadAttr.Color := clBtnFace;
 
   { Assign default font to DayNumberFont and EventFont }
-  FDayNumberFont := TFont.Create;
+  FDayNumberFont := TVpFont.Create(AOwner);
   FDayNumberFont.Assign(Font);
-  FDayNumberFont.OnChange := mvFontChanged;
-  FEventFont := TFont.Create;
+
+  FEventFont := TVpFont.Create(AOwner);
   FEventFont.Assign(Font);
-  FEventFont.OnChange := mvFontChanged;
+
+  FOffDayFontColor := clGray;
+  FOffDayColor := OFF_COLOR;
+
+  FHolidayAttr.Font.Assign(FDayNumberFont);
+
+  FWeekendAttr.Font.Assign(FHolidayAttr.Font);
 
   SetLength(mvEventArray, MaxVisibleEvents);
   SetLength(mvMonthdayArray, 45);
@@ -366,7 +512,7 @@ begin
   Height := 225;
   Width := 300;
 
-  FDefaultPopup := TPopupMenu.Create (Self);
+  FDefaultPopup := TPopupMenu.Create(Self);
   Self.PopupMenu := FDefaultPopup;
   LoadLanguage;
 
@@ -376,13 +522,63 @@ end;
 
 destructor TVpMonthView.Destroy;
 begin
-  FDayHeadAttributes.Free;
+  FHeadAttr.Free;
+  FHolidayAttr.Free;
+  FTodayAttr.Free;
+  FDayHeadAttr.Free;
+  FWeekendAttr.Free;
   FDayNumberFont.Free;
   FEventFont.Free;
-  mvSpinButtons.Free;
-  mvEventList.Free;
-  FDefaultPopup.Free;
+//  mvSpinButtons.Free;
+//  FDefaultPopup.Free;
   inherited;
+end;
+
+function TVpMonthView.BuildEventString(AEvent: TVpEvent;
+  AShowEventTime, AStartTimeOnly: Boolean): String;
+var
+  timefmt: String;
+  timeStr: String;
+  descrStr: String;
+  grp: TVpResourceGroup;
+  res: TVpResource;
+begin
+  Result := '';
+  if (AEvent = nil) or (Datastore = nil) or (Datastore.Resource = nil) then
+    exit;
+
+  timeStr := '';
+  descrStr := '';
+  if AShowEventTime then
+  begin
+    if AEvent.AllDayEvent then
+      timeStr := RSAllDay
+    else begin
+      timeFmt := GetTimeFormatStr(TimeFormat);
+      timeStr := FormatDateTime(timefmt, AEvent.StartTime);
+      if not AStartTimeOnly then
+        timeStr := timeStr + ' - ' + FormatDateTime(timeFmt, AEvent.EndTime);
+    end;
+  end;
+
+  if AEvent.IsOverlayed then
+  begin
+    res := Datastore.Resources.GetResource(AEvent.ResourceID);
+    grp := Datastore.Resource.Group;
+    if (grp <> nil) then
+      descrStr := Format('[%s]%s', [
+        IfThen(odResource in grp.ShowDetails, res.Description, res.Description),
+        IfThen(odEventDescription in grp.ShowDetails, ' ' + AEvent.Description)
+      ]);
+  end else
+    descrStr := AEvent.Description;
+
+  if (timeStr <> '') and (descrStr <> '') then
+    Result := timeStr + ': ' + descrStr
+  else if (timeStr <> '') then
+    Result := timeStr
+  else
+    Result := descrStr;
 end;
 
 procedure TVpMonthView.LoadLanguage;
@@ -397,21 +593,28 @@ procedure TVpMonthView.Invalidate;
 begin
   inherited;
 end;
-{=====}
+
+function TVpMonthView.IsHoliday(ADate: TDate; out AHolidayName: String): Boolean;
+begin
+  AHolidayName := '';
+  if Assigned(FOnHoliday) then
+    FOnHoliday(Self, ADate, AHolidayName);
+  Result := AHolidayName <> '';
+end;
 
 procedure TVpMonthView.LinkHandler(Sender: TComponent;
   NotificationType: TVpNotificationType; const Value: Variant);
 begin
-  mvInLinkHandler := true;
-  try
+//  mvInLinkHandler := true;
+//  try
     case NotificationType of
-      neDateChange: Date := Value;
-      neDataStoreChange: Invalidate;
-      neInvalidate: Invalidate;
+      neDateChange      : Date := Value;
+      neDataStoreChange : Invalidate;
+      neInvalidate      : Invalidate;
     end;
-  finally
-    mvInLinkHandler := false;
-  end;
+//  finally
+//    mvInLinkHandler := false;
+//  end;
 end;
 {=====}
 
@@ -429,13 +632,11 @@ begin
       end;
     end;
 end;
-{=====}
 
-procedure TVpMonthView.mvFontChanged(Sender: TObject);
+procedure TVpMonthView.mvPenChanged(Sender: TObject);
 begin
   Invalidate;
 end;
-{=====}
 
 procedure TVpMonthView.Loaded;
 begin
@@ -445,796 +646,38 @@ begin
 end;
 {=====}
 
-function TVpMonthView.GetControlType : TVpItemType;
+function TVpMonthView.GetControlType: TVpItemType;
 begin
   Result := itMonthView;
 end;
 
 procedure TVpMonthView.Paint;
 begin
-  RenderToCanvas (Canvas,
-                  Rect (0, 0, Width, Height),
-                  ra0,
-                  1,
-                  Self.Date,
-                  -1,
-                  -1,
-                  gr30Min,
-                  False);
+  RenderToCanvas(Canvas, Rect (0, 0, Width, Height), ra0, 1, Self.Date,
+    -1, -1, gr30Min, False);
 end;
-{=====}
-procedure TVpMonthView.PaintToCanvas (ACanvas : TCanvas;
-                                       ARect   : TRect;
-                                       Angle   : TVpRotationAngle;
-                                       ADate   : TDateTime);
+
+procedure TVpMonthView.PaintToCanvas(ACanvas: TCanvas; ARect: TRect;
+  Angle: TVpRotationAngle; ADate: TDateTime);
 begin
-  RenderToCanvas (ACanvas, ARect, Angle, 1, ADate,
-                  -1, -1, gr30Min, True);
+  RenderToCanvas(ACanvas, ARect, Angle, 1, ADate, -1, -1, gr30Min, True);
 end;
-{=====}
-procedure TVpMonthView.RenderToCanvas (RenderCanvas : TCanvas;
-                                       RenderIn     : TRect;
-                                       Angle        : TVpRotationAngle;
-                                       Scale        : Extended;
-                                       RenderDate   : TDateTime;
-                                       StartLine    : Integer;
-                                       StopLine     : Integer;
-                                       UseGran      : TVpGranularity;
-                                       DisplayOnly  : Boolean);
+
+procedure TVpMonthView.RenderToCanvas(RenderCanvas: TCanvas; RenderIn: TRect;
+  Angle: TVpRotationAngle; Scale: Extended; RenderDate: TDateTime;
+  StartLine, StopLine: Integer; UseGran: TVpGranularity; DisplayOnly: Boolean);
 var
-  HeadRect       : TRect;
-  SaveBrushColor : TColor;
-  SavePenStyle   : TPenStyle;
-  SavePenColor   : TColor;
-  DisplayDate    : TDateTime;
-
-  RealWidth      : Integer;
-  RealHeight     : Integer;
-  RealLeft       : Integer;
-  RealRight      : Integer;
-  RealTop        : Integer;
-  RealBottom     : Integer;
-  Rgn            : HRGN;
-
-  RealColor        : TColor;
-  BevelHighlight   : TColor;
-  BevelShadow      : TColor;
-  BevelDarkShadow  : TColor;
-  BevelFace        : TColor;
-  DayHeadAttrColor : TColor;
-  RealLineColor    : TColor;
-  RealOffDayColor  : TColor;
-  RealSelDayColor  : TColor;
-  EventFontColor   : TColor;
-  DotDotDotColor   : TColor;
-
-  procedure Clear;
-  begin
-    RenderCanvas.Brush.Color := RealColor;
-    RenderCanvas.FillRect(RenderIn);
-  end;
-  {-}
-
-  procedure SetMeasurements;
-  begin
-    RealWidth  := TPSViewportWidth (Angle, RenderIn);
-    RealHeight := TPSViewportHeight (Angle, RenderIn);
-    RealLeft   := TPSViewportLeft (Angle, RenderIn);
-    RealRight  := TPSViewportRight (Angle, RenderIn);
-    RealTop    := TPSViewportTop (Angle, RenderIn);
-    RealBottom := TPSViewportBottom (Angle, RenderIn);
-
-    if RenderDate = 0 then
-      DisplayDate := Date
-    else
-      DisplayDate := RenderDate;
-
-    { we use the VpProductName because is is a good representation of some }
-    { generic text }
-    RenderCanvas.Font.Assign(FDayHeadAttributes.Font);
-    mvDayHeadHeight := RenderCanvas.TextHeight(VpProductName) + TextMargin + 2;
-    RenderCanvas.Font.Assign(FDayNumberFont);
-    mvDayNumberHeight := RenderCanvas.TextHeight('00');
-    RenderCanvas.Font.Assign(FEventFont);
-    mvEventTextHeight := RenderCanvas.TextHeight(VpProductName);
-    RenderCanvas.Font.Assign(Font);
-    mvLineHeight := RenderCanvas.TextHeight(VpProductName) + 2;
-    mvColWidth   := (RealWidth - 4) div 7;
-  end;
-  {-}
-
-  procedure DrawHeader;
-  var
-    HeadTextRect: TRect;
-    HeadStr: string;
-    HeadStrLen : Integer;
-  begin
-    RenderCanvas.Brush.Color := DayHeadAttrColor;
-    { draw the header cell and borders }
-
-    if FDrawingStyle = dsFlat then begin
-      { draw an outer and inner bevel }
-      HeadRect.Left := RealLeft + 1;
-      HeadRect.Top := RealTop + 1;
-      HeadRect.Right := RealRight - 1;
-      HeadRect.Bottom := RealTop + mvDayHeadHeight;
-      TPSFillRect (RenderCanvas, Angle, RenderIn, HeadRect);
-      DrawBevelRect (RenderCanvas,
-                     TPSRotateRectangle (Angle, RenderIn, HeadRect),
-                     BevelHighlight, BevelShadow);
-    end else if FDrawingStyle = ds3d then begin
-      { draw a 3d bevel }
-      HeadRect.Left := RealLeft + 2;
-      HeadRect.Top := RealTop + 2;
-      HeadRect.Right := RealRight - 3;
-      HeadRect.Bottom := RealTop + mvDayHeadHeight;
-      TPSFillRect (RenderCanvas, Angle, RenderIn, HeadRect);
-      DrawBevelRect (RenderCanvas,
-                     TPSRotateRectangle (Angle, RenderIn, HeadRect),
-                     BevelHighlight, BevelDarkShadow);
-    end
-    else begin
-      HeadRect.Left := RealLeft + 1;
-      HeadRect.Top := RealTop + 1;
-      HeadRect.Right := RealRight - 1;
-      HeadRect.Bottom := RealTop + mvDayHeadHeight;
-    end;
-
-    { Acquire startdate and end date }
-    HeadStr := SysToUtf8(FormatDateTime(DateLabelFormat, DisplayDate));
-
-    { draw the text }
-    if (DisplayOnly) and
-       (RenderCanvas.TextWidth (HeadStr) >= RealWidth) then
-      HeadTextRect.TopLeft:= Point (RealLeft + TextMargin * 2,
-                                    HeadRect.Top)
-    else if DisplayOnly then
-      HeadTextRect.TopLeft := Point (RealLeft +
-                                     (RealWidth -
-                                     RenderCanvas.TextWidth (HeadStr)) div 2,
-                                     HeadRect.Top)
-    else
-      HeadTextRect.TopLeft := Point (RealLeft + 30 + TextMargin * 2,
-                                     HeadRect.Top);
-    HeadTextRect.BottomRight := HeadRect.BottomRight;
-
-    { Fix Header String }
-    HeadStrLen := RenderCanvas.TextWidth(HeadStr);
-
-    if HeadStrLen > HeadTextRect.Right - HeadTextRect.Left then begin
-      HeadStr := GetDisplayString(RenderCanvas, HeadStr, 0,
-        HeadTextRect.Right - HeadTextRect.Left - TextMargin);
-    end;
-
-    { position the spinner }
-    mvSpinButtons.Height := Trunc(mvDayHeadHeight * 0.8);
-    mvSpinButtons.Width := mvSpinButtons.Height * 2;
-    mvSpinButtons.Left := TextMargin;
-    mvSpinButtons.Top := (mvDayHeadHeight - mvSpinButtons.Height) div 2 + 2;
-
-    RenderCanvas.Font.Assign (FDayHeadAttributes.Font);
-    TPSTextOut (RenderCanvas, Angle, RenderIn,
-                RealLeft + mvSpinButtons.Width + TextMargin * 2,
-                HeadTextRect.Top + TextMargin, HeadStr);
-  end;
-  {-}
-
-  procedure DrawDayHead;
-  var
-    dhRect : TRect;
-    I      : Integer;
-    DayTag : Integer;
-    Str    : string;
-    StrL   : Integer;
-  begin
-    { clear day head area }
-    RenderCanvas.Font.Assign(DayHeadAttributes.Font);
-    RenderCanvas.Brush.Color := DayHeadAttrColor;
-
-    { build rect }
-    if DrawingStyle = ds3D then begin
-      dhRect.Left := RealLeft + 1;
-      dhRect.Top := RealTop + mvDayHeadHeight + 3;
-      dhRect.Right := RealRight - 3;
-      dhRect.Bottom := dhRect.Top + mvDayHeadHeight;
-      TPSFillRect (RenderCanvas, Angle, RenderIn, dhRect);
-      DrawBevelRect (RenderCanvas,
-                     TPSRotateRectangle (Angle, RenderIn, dhRect),
-                     BevelHighlight, BevelDarkShadow);
-    end else begin
-      dhRect.Left := RealLeft + 1;
-      dhRect.Top := RealTop + mvDayHeadHeight + 2;
-      dhRect.Right := RealRight - 1;
-      dhRect.Bottom := dhRect.Top + mvDayHeadHeight;
-      TPSFillRect (RenderCanvas, Angle, RenderIn, dhRect);
-      DrawBevelRect (RenderCanvas,
-                     TPSRotateRectangle (Angle, RenderIn, dhRect),
-                     BevelHighlight, BevelShadow);
-    end;
-
-    DayTag := Ord(WeekStartsOn);
-    dhRect.Right := dhRect.Left + mvColWidth;
-    for I := 0 to 6 do begin
-      { draw the little vertical lines between each day }
-      if I < 6 then
-        DrawBevelRect (RenderCanvas,
-                       TPSRotateRectangle (Angle, RenderIn,
-                                           Rect (dhRect.Right,
-                                                 dhRect.Top + 3,
-                                                 dhRect.Right + 1,
-                                                 dhRect.Bottom - 3)),
-                       BevelShadow, BevelHighlight);
-
-      if FDayNameStyle = dsLong then
-        { Draw each day's full caption... }
-        case DayTag of
-          0: str := RSSunday;
-          1: str := RSMonday;
-          2: str := RSTuesday;
-          3: str := RSWednesday;
-          4: str := RSThursday;
-          5: str := RSFriday;
-          6: str := RSSaturday;
-        end
-      else if FDayNameStyle = dsShort then
-        { Draw each day's abbreviated caption... }
-        case DayTag of
-          0: str := RSASunday;
-          1: str := RSAMonday;
-          2: str := RSATuesday;
-          3: str := RSAWednesday;
-          4: str := RSAThursday;
-          5: str := RSAFriday;
-          6: str := RSASaturday;
-        end
-      else if FDayNameStyle = dsLetter then
-        { Draw each day's first letter only }
-        case DayTag of
-          0: str := RSLSunday;
-          1: str := RSLMonday;
-          2: str := RSLTuesday;
-          3: str := RSLWednesday;
-          4: str := RSLThursday;
-          5: str := RSLFriday;
-          6: str := RSLSaturday;
-        end;
-
-      { Fix Header String }
-      StrL := RenderCanvas.TextWidth(Str);
-      if (StrL > mvColWidth - (TextMargin * 2)) then begin
-        Str := GetDisplayString (RenderCanvas, Str, 0,
-                                 mvColWidth - (TextMargin * 2));
-      end;
-      StrL := RenderCanvas.TextWidth(Str);
-      RenderCanvas.Font.Size:=Self.Font.Size;
-      TPSTextOut (RenderCanvas, Angle, RenderIn,
-                  dhRect.Left + (dhRect.Right - dhRect.Left) div 2 -
-                  (Strl div 2), dhRect.Top + TextMargin - 1, Str);
-
-      if DayTag = 6 then
-        DayTag := 0
-      else
-        Inc(DayTag);
-      dhRect.Left := dhRect.Right;
-      dhRect.Right := dhRect.Left + mvColWidth;
-    end;
-
-  end;
-  {-}
-
-  procedure DrawDays;
-  var
-    TextRect      : TRect;
-    Col, Row      : Integer;
-    DayNumber     : Integer;
-    M, D, Y, Tmp  : Word;
-    MonthStartsOn : Integer;
-    DayTag        : Integer;
-    DayOffset     : Integer;
-    StartingDate  : TDateTime;
-    ThisDate      : TDateTime;
-    Str           : string;
-    StrLn         : Integer;
-    I, J          : Integer;
-    EventList     : TList;
-    Drawn         : Boolean;
-    TextAdjust    : Integer;
-    FontStyle     : TFontStyles;
-    OldBrush      : TBrush;
-    OldPen        : TPen;
-    OldFont       : TFont;
-    TmpRect: TRect;
-  begin
-    { initialize the MonthDayArray }
-    for I := 0 to Pred(Length(mvMonthDayArray)) do begin
-      mvMonthDayArray[I].Rec     := Rect(-1, -1, -1, -1);
-      mvMonthDayArray[I].Date    := 0.0;
-    end;
-
-    RenderCanvas.Pen.Color := RealLineColor;
-    RenderCanvas.Brush.Color := RealColor;
-    mvRowHeight := (RealHeight - (mvDayHeadHeight * 2) - 4) div 6;
-    TextRect.TopLeft := Point (RealLeft + 1,
-                               RealTop + (mvDayHeadHeight * 2) + 4);
-    TextRect.BottomRight := Point (TextRect.Left +  mvColWidth,
-                                   TextRect.Top + mvRowHeight);
-
-    { Determine the starting date and offset }
-    DecodeDate(DisplayDate, Y, M, D);
-    StartingDate := EncodeDate(Y, M, 1);
-    MonthStartsOn := DayOfWeek(StartingDate);
-    DayTag := Ord(WeekStartsOn);
-    DayOffset := DayTag - MonthStartsOn;
-
-    I := 0;
-    DayNumber := DayOffset + 1;
-
-    { iterate through each column, row by row, drawing each day in numerical }
-    { order.                                                                 }
-
-    OldBrush := TBrush.Create;
-    try
-      OldPen := TPen.Create;
-      try
-        OldFont := TFont.Create;
-        try
-          for Row := 0 to 5 do begin
-            for Col := 0 to 6 do begin
-              if (Col = 6) then begin
-                { draws the far right day for this week }
-                ThisDate := trunc(StartingDate + DayNumber);
-                DecodeDate(ThisDate, Y, Tmp, D);
-
-                { Allow the user to draw the day }
-                Drawn  := false;
-                if Assigned(FOwnerDrawCells) then begin
-                  OldBrush.Assign (Canvas.Brush);
-                  OldPen.Assign (Canvas.Pen);
-                  OldFont.Assign (Canvas.Font);
-                  try
-                    FOwnerDrawCells(self, RenderCanvas, TextRect, D, Drawn);
-                    if Drawn then continue;
-                  finally
-                    Canvas.Brush.Assign (OldBrush);
-                    Canvas.Pen.Assign (OldPen);
-                    Canvas.Font.Assign (OldFont);
-                  end;
-                end;
-
-                TextRect.Right := TextRect.Right + 8;
-                if Tmp <> M then begin
-                  RenderCanvas.Brush.Color := RealOffDayColor;
-                  if TextRect.Bottom > RealBottom then
-                    TPSFillRect (RenderCanvas, Angle, RenderIn,
-                                 Rect (TextRect.Left, TextRect.Top,
-                                       RealRight, RealBottom))
-                  else
-                    TPSFillRect (RenderCanvas, Angle, RenderIn,
-                                 Rect (TextRect.Left, TextRect.Top,
-                                       RealRight, TextRect.Bottom));
-                end else
-                  RenderCanvas.Brush.Color := RealColor;
-                { draw bottom line }
-                TPSMoveTo (RenderCanvas, Angle, RenderIn,
-                           TextRect.Left, TextRect.Bottom);
-                TPSLineTo (RenderCanvas, Angle, RenderIn, RealRight - 2,
-                           TextRect.Bottom);
-                { Paint the day number }
-                Str := FormatDateTime('d', ThisDate);
-
-                { set the proper font and style }
-                RenderCanvas.Font.Assign(FDayNumberFont);
-                if (DisplayDate = ThisDate) then begin
-                  if Focused then begin
-                    TPSDrawFocusRect (RenderCanvas, Angle, RenderIn,
-                                      Rect (TextRect.Left - 2,
-                                            TextRect.Top - 2,
-                                            TextRect.Right + 2,
-                                            TextRect.Bottom + 2));
-                    TPSDrawFocusRect (RenderCanvas, Angle, RenderIn,
-                                      Rect (TextRect.Left + 2,
-                                            TextRect.Top + 2,
-                                            TextRect.Right - 2,
-                                            TextRect.Bottom - 2));
-                  end;
-                  RenderCanvas.Font.Color := RealSelDayColor;
-                  RenderCanvas.Font.Style := FDayNumberFont.Style + [fsBold];
-                  if (FEventDayStyle <> []) and (DataStore.Resource <> nil)
-                  and (DataStore.Resource.Schedule.EventCountByDay(ThisDate) > 0)
-                  then
-                    RenderCanvas.Font.Style := RenderCanvas.Font.Style
-                      + FEventDayStyle;
-                end else begin
-                  { Set the font style for days which have events. }
-                  if (FEventDayStyle <> []) and (DataStore.Resource <> nil)
-                  and (DataStore.Resource.Schedule.EventCountByDay(ThisDate) > 0)
-                  then
-                    RenderCanvas.Font.Style := RenderCanvas.Font.Style
-                      + FEventDayStyle
-                  else begin
-                    RenderCanvas.Font.Color := EventFontColor;
-                    RenderCanvas.Font.Style := FDayNumberFont.Style;
-                  end;
-                end;
-
-                FontStyle := RenderCanvas.Font.Style;
-                RenderCanvas.Font.Style := [fsBold, fsItalic];
-                TextAdjust := RenderCanvas.TextWidth (Str);
-                RenderCanvas.Font.Style := FontStyle;
-
-                { write the day number at the top of the square. }
-                if fsItalic in RenderCanvas.Font.Style then
-                  TPSTextOut (RenderCanvas, Angle, RenderIn,
-                              TextRect.Left + mvColWidth - TextAdjust -
-                              TextMargin - 2,
-                              TextRect.Top + (TextMargin div 2), Str)
-                else
-                  TPSTextOut (RenderCanvas, Angle, RenderIn,
-                              TextRect.Left + mvColWidth - TextAdjust
-                                - TextMargin, TextRect.Top + (TextMargin div 2),
-                                Str);
-
-
-                { Update MonthDayArray }
-                mvMonthDayArray[I].Rec := TextRect;
-                mvMonthDayArray[I].Date := ThisDate;
-                mvMonthDayArray[I].OffDay := Tmp <> M;
-                Inc(DayNumber);
-                Inc(I);
-
-                { drop rect down one row and all the way to the left }
-                TextRect.TopLeft := Point(RealLeft + 1, TextRect.Bottom + 1);
-                TextRect.BottomRight := Point(TextRect.Left + mvColWidth,
-                  TextRect.Top + mvRowHeight);
-              end else begin
-                { draws all days for the week, except the far right one }
-                ThisDate := Trunc(StartingDate + DayNumber);
-                DecodeDate(ThisDate, Y, Tmp, D);
-
-                { Allow the user to draw the day }
-                Drawn  := false;
-                if Assigned(FOwnerDrawCells) then begin
-                  OldBrush.Assign (Canvas.Brush);
-                  OldPen.Assign (Canvas.Pen);
-                  OldFont.Assign (Canvas.Font);
-                  try
-                    FOwnerDrawCells(self, RenderCanvas, TextRect, D, Drawn);
-                    if Drawn then continue;
-                  finally
-                    Canvas.Brush.Assign (OldBrush);
-                    Canvas.Pen.Assign (OldPen);
-                    Canvas.Font.Assign (OldFont);
-                  end;
-                end;
-
-                if Tmp <> M then begin
-                  RenderCanvas.Brush.Color := RealOffDayColor;
-                  TPSFillRect (RenderCanvas, Angle, RenderIn, TextRect);
-                end else
-                  RenderCanvas.Brush.Color := RealColor;
-                { draw right side and bottom lines }
-                TPSMoveTo (RenderCanvas, Angle, RenderIn, TextRect.Right,
-                  TextRect.top);
-                if TextRect.Bottom > RealBottom then begin
-                  TPSLineTo (RenderCanvas, Angle, RenderIn, TextRect.Right,
-                    RealBottom);
-                  TPSLineTo (RenderCanvas, Angle, RenderIn, TextRect.Left - 1,
-                    RealBottom);
-                end else begin
-                  TPSLineTo (RenderCanvas, Angle, RenderIn, TextRect.Right,
-                    TextRect.Bottom);
-                  TPSLineTo (RenderCanvas, Angle, RenderIn, TextRect.Left - 1,
-                    TextRect.Bottom);
-                end;
-                { paint the day number }
-                Str := FormatDateTime('d', ThisDate);
-
-                { set the proper font and style }
-                RenderCanvas.Font.Assign(FDayNumberFont);
-                if (DisplayDate = ThisDate) then begin
-                  if Focused then begin
-                    TPSDrawFocusRect (RenderCanvas, Angle, RenderIn,
-                                      Rect (TextRect.Left - 2,
-                                            TextRect.Top - 2,
-                                            TextRect.Right + 2,
-                                            TextRect.Bottom + 2));
-                    TPSDrawFocusRect (RenderCanvas, Angle, RenderIn,
-                                      Rect (TextRect.Left + 2,
-                                            TextRect.Top + 2,
-                                            TextRect.Right - 2,
-                                            TextRect.Bottom - 2));
-                  end;
-                  RenderCanvas.Font.Color := RealSelDayColor;
-                  RenderCanvas.Font.Style := FDayNumberFont.Style + [fsBold];
-                  if (FEventDayStyle <> []) and (DataStore.Resource <> nil)
-                  and (DataStore.Resource.Schedule.EventCountByDay(ThisDate) > 0)
-                  then
-                    RenderCanvas.Font.Style := RenderCanvas.Font.Style
-                      + FEventDayStyle;
-                end else begin
-                  { Set the font style for days which have events. }
-                  if (FEventDayStyle <> []) and (DataStore.Resource <> nil)
-                  and (DataStore.Resource.Schedule.EventCountByDay(ThisDate) > 0)
-                  then
-                    RenderCanvas.Font.Style := RenderCanvas.Font.Style
-                      + FEventDayStyle
-                  else begin
-                    RenderCanvas.Font.Color := EventFontColor;
-                    RenderCanvas.Font.Style := FDayNumberFont.Style;
-                  end;
-                end;
-
-                FontStyle := RenderCanvas.Font.Style;
-                RenderCanvas.Font.Style := [fsBold, fsItalic];
-                TextAdjust := RenderCanvas.TextWidth (Str);
-                RenderCanvas.Font.Style := FontStyle;
-
-                if fsItalic in RenderCanvas.Font.Style then
-                  TPSTextOut (RenderCanvas, Angle, RenderIn,
-                              TextRect.Right - TextAdjust - TextMargin - 2,
-                              TextRect.Top + (TextMargin div 2), Str)
-                else
-                  TPSTextOut (RenderCanvas, Angle, RenderIn,
-                              TextRect.Right - TextAdjust - TextMargin,
-                              TextRect.Top + (TextMargin div 2), Str);
-
-                { Update Array }
-                mvMonthDayArray[I].Rec := TextRect;
-                mvMonthDayArray[I].Date := ThisDate;
-                mvMonthDayArray[I].OffDay := Tmp <> M;
-                Inc(DayNumber);
-                Inc(I);
-                { slide rect one column to the right }
-                TextRect.Left := TextRect.Right + 1;
-                TextRect.Right := TextRect.Right + mvColWidth;
-              end;
-            end;
-          end;
-
-        finally
-          OldFont.Free;
-        end;
-      finally
-        OldPen.Free;
-      end;
-    finally
-      OldBrush.Free;
-    end;
-
-    RenderCanvas.Pen.Color := RealLineColor;
-    RenderCanvas.Pen.Style := psSolid;
-    RenderCanvas.Brush.Color := RealColor;
-
-    { write the events }
-    if (DataStore <> nil) and FShowEvents and (DataStore.Resource <> nil)
-    and (DataStore.Resource.Schedule.EventCount <> 0) then begin
-      EventList := TList.Create;
-      try
-        for I := 0 to 43 do begin
-          EventList.Clear;
-          DataStore.Resource.Schedule.EventsByDate(mvMonthDayArray[I].Date, EventList);
-          if EventList.Count > 0 then begin
-            { there are events scheduled for this day }
-
-            { initialize TextRect for this day }
-            TextRect.TopLeft := Point(mvMonthDayArray[I].Rec.Left,
-              mvMonthDayArray[I].Rec.Top);
-            TextRect.BottomRight := Point(TextRect.Left + mvColWidth,
-              TextRect.Top + mvEventTextHeight + (TextMargin div 2));
-
-            { set canvas color }
-            if mvMonthDayArray[I].OffDay
-            then RenderCanvas.Brush.Color := RealOffDayColor
-            else RenderCanvas.Brush.Color := RealColor;
-
-            { spin through the events and paint them }
-            for J := 0 to Pred(EventList.Count) do begin
-
-              if (TextRect.Bottom > mvMonthDayArray[I].Rec.Bottom)
-              and (J <= Pred(EventList.Count))
-              then begin
-                { draw a little red square with a (...) at the bottom right }
-                { corner of the day to indicate that there are more events  }
-                { than can be listed in the available space.                }
-                RenderCanvas.Brush.Color := DotDotDotColor;
-                { draw dot dot dot }
-                TPSFillRect (RenderCanvas, Angle, RenderIn,
-                             Rect(mvMonthDayArray[I].Rec.Right - 20,
-                                     mvMonthDayArray[I].Rec.Bottom - 7,
-                                     mvMonthDayArray[I].Rec.Right - 17,
-                                     mvMonthDayArray[I].Rec.Bottom - 4));
-                TPSFillRect (RenderCanvas, Angle, RenderIn,
-                             Rect(mvMonthDayArray[I].Rec.Right - 13,
-                                     mvMonthDayArray[I].Rec.Bottom - 7,
-                                     mvMonthDayArray[I].Rec.Right - 10,
-                                     mvMonthDayArray[I].Rec.Bottom - 4));
-                TPSFillRect (RenderCanvas, Angle, RenderIn,
-                             Rect(mvMonthDayArray[I].Rec.Right -  6,
-                                     mvMonthDayArray[I].Rec.Bottom - 7,
-                                     mvMonthDayArray[I].Rec.Right -  3,
-                                     mvMonthDayArray[I].Rec.Bottom - 4));
-                Break;
-              end;
-
-              RenderCanvas.Brush.Color := RealColor;
-
-              if TVpEvent(EventList.List^[j]).Color<>clNone then
-                begin
-                  TmpRect := TextRect;
-                  TmpRect.Top:=TmpRect.Top+3;
-                  TmpRect.Left:=TmpRect.Left+3;
-                  TmpRect.Right:=TmpRect.Right-24;
-                  RenderCanvas.GradientFill(TmpRect,TVpEvent(EventList.List^[j]).Color,RealColor,gdHorizontal);
-                end
-              else if TVpEvent(EventList.List^[j]).AllDayEvent then
-                begin
-                  TmpRect := TextRect;
-                  TmpRect.Top:=TmpRect.Top+3;
-                  TmpRect.Left:=TmpRect.Left+3;
-                  TmpRect.Right:=TmpRect.Right-24;
-                  RenderCanvas.GradientFill(TmpRect,clBtnFace,RealColor,gdHorizontal);
-                end;
-
-              { shorten events that are next to the day number, in order }
-              { to give the day number enough room }
-              if (TextRect.Top < mvMonthDayArray[I].Rec.Top
-                + mvDayNumberHeight + (TextMargin div 2))
-              then
-                TextRect.Right := TextRect.Left + mvColWidth
-                  - mvDayNumberHeight - TextMargin
-              else
-                TextRect.Right := TextRect.Left + mvColWidth;
-
-              { format the display text }
-              if ShowEventTime then begin
-                if (TimeFormat = tf24Hour) then
-                  Str := FormatDateTime('hh:mm',
-                    TVpEvent(EventList.List^[j]).StartTime)
-                else
-                  Str := FormatDateTime('hh:mm AM/PM',
-                    TVpEvent(EventList.List^[j]).StartTime);
-                Str := Str + ' - ' + TVpEvent(EventList.List^[j]).Description;
-              end else
-                Str := TVpEvent(EventList.List^[j]).Description;
-
-              { set the event font }
-              RenderCanvas.Font.Assign(FEventFont);
-
-              StrLn := RenderCanvas.TextWidth(Str);
-              if (StrLn > TextRect.Right - TextRect.Left - (TextMargin * 2)) then
-              begin
-                Str := GetDisplayString(RenderCanvas, Str, 0, TextRect.Right -
-                  TextRect.Left - (TextMargin * 2));
-              end;
-
-              { write the event text }
-              TPSTextOut (RenderCanvas, Angle, RenderIn, TextRect.Left + (TextMargin div 2),
-                TextRect.Top + (TextMargin div 2), Str);
-
-              { - begin block}
-              Inc(mvVisibleEvents);
-              mvEventArray[mvVisibleEvents - 1].Rec := TextRect;
-              mvEventArray[mvVisibleEvents - 1].Event := TVpEvent(EventList.List^[j]);
-              { - end block}
-
-              { Move TextRect down one line for the next item... }
-              TextRect.Top := TextRect.Bottom + 1;
-              TextRect.Bottom := TextRect.Top + mvLineHeight;
-            end;
-          end;
-        end;
-      finally
-        EventList.Free;
-      end;
-    end;
-  end;
-  {-}
-
-
-  procedure DrawBorders;
-  begin
-    if FDrawingStyle = dsFlat then begin
-      { draw an outer and inner bevel }
-      DrawBevelRect (RenderCanvas,
-                     TPSRotateRectangle (Angle,
-                                         RenderIn,
-                                         Rect (RealLeft,
-                                               RealTop,
-                                               RealRight - 1,
-                                               RealBottom - 1)),
-                     BevelShadow,
-                     BevelShadow);
-    end else if FDrawingStyle = ds3d then begin
-    { draw a 3d bevel }
-      DrawBevelRect (RenderCanvas,
-                     TPSRotateRectangle (Angle,
-                                         RenderIn,
-                                         Rect (RealLeft,
-                                               RealTop,
-                                               RealRight - 1,
-                                               RealBottom - 1)),
-                     BevelShadow,
-                     BevelHighlight);
-      DrawBevelRect (RenderCanvas,
-                     TPSRotateRectangle (Angle,
-                                         RenderIn,
-                                         Rect (RealLeft + 1,
-                                               RealTop +  1,
-                                               RealRight - 2,
-                                               RealBottom - 2)),
-                     BevelDarkShadow,
-                     BevelFace);
-    end;
-  end;
-  {-}
+  painter: TVpMonthViewPainter;
 begin
-  if DisplayOnly then begin
-    BevelHighlight   := clBlack;
-    BevelShadow      := clBlack;
-    BevelDarkShadow  := clBlack;
-    BevelFace        := clBlack;
-    RealColor        := clWhite;
-    DayHeadAttrColor := clSilver;
-    RealLineColor    := clBlack;
-    RealOffDayColor  := clSilver;
-    RealSelDayColor  := clWhite;
-    EventFontColor   := clBlack;
-  end else begin
-    BevelHighlight   := clBtnHighlight;
-    BevelShadow      := clBtnShadow;
-    BevelDarkShadow  := cl3DDkShadow;
-    BevelFace        := clBtnFace;
-    RealColor        := Color;
-    DayHeadAttrColor := DayHeadAttributes.Color;
-    RealLineColor    := LineColor;
-    RealOffDayColor  := OffDayColor;
-    RealSelDayColor  := FSelectedDayColor;
-    EventFontColor   := FDayNumberFont.Color;
-  end;
-  DotDotDotColor := clBlack;
-
-  mvPainting := true;
-  SavePenStyle := RenderCanvas.Pen.Style;
-  SaveBrushColor := RenderCanvas.Brush.Color;
-  SavePenColor := RenderCanvas.Pen.Color;
-
-  RenderCanvas.Pen.Style   := psSolid;
-  RenderCanvas.Pen.Width   := 1;
-  RenderCanvas.Pen.Mode    := pmCopy;
-  RenderCanvas.Brush.Style := bsSolid;
-
-  Rgn := CreateRectRgn (RenderIn.Left, RenderIn.Top,
-                        RenderIn.Right, RenderIn.Bottom);
+//  mvPainting := true;
+  painter := TVpMonthViewPainter.Create(Self, RenderCanvas);
   try
-    SelectClipRgn (RenderCanvas.Handle, Rgn);
-
-    { clear client area }
-    Clear;
-
-    { measure the row heights }
-    SetMeasurements;
-
-    { draw headers }
-    DrawHeader;
-    DrawDayHead;
-
-    { draw days }
-    mvVisibleEvents := 0;                                                
-    DrawDays;
-
-    { draw the borders }
-    DrawBorders;
-
+    painter.RenderToCanvas(RenderIn, Angle, Scale, RenderDate, StartLine,
+      StopLine, UseGran, DisplayOnly);
   finally
-    SelectClipRgn (RenderCanvas.Handle, 0);
-    DeleteObject (Rgn);
+    painter.Free;
+//    mvPainting := false;
   end;
-
-  { reinstate canvas settings}
-  RenderCanvas.Pen.Style := SavePenStyle;
-  RenderCanvas.Brush.Color := SaveBrushColor;
-  RenderCanvas.Pen.Color := SavePenColor;
-  mvPainting := false; 
 end;
 
 procedure TVpMonthView.mvPopulate;
@@ -1244,9 +687,52 @@ begin
 end;
 {=====}
 
+procedure TVpMonthView.mvSpawnEventEditDialog(NewEvent: Boolean);
+var
+  AllowIt: Boolean;
+  EventDlg : TVpEventEditDialog;
+begin
+  if DataStore = nil then Exit;
+
+  if (not NewEvent) and (not mvActiveEvent.CanEdit) then begin
+    MessageDlg(RSCannotEditOverlayedEvent, mtInformation, [mbOk], 0);
+    exit;
+  end;
+
+  AllowIt := false;
+  if Assigned(FOwnerEditEvent) then
+    FOwnerEditEvent(self, mvActiveEvent, DataStore.Resource, AllowIt)
+  else begin
+    EventDlg := TVpEventEditDialog.Create(nil);
+    try
+      EventDlg.DataStore := DataStore;
+      EventDlg.TimeFormat := FTimeFormat;
+      AllowIt := EventDlg.Execute(mvActiveEvent);
+    finally
+      EventDlg.Free;
+    end;
+  end;
+
+  if AllowIt then begin
+    mvActiveEvent.Changed := true;
+    DataStore.PostEvents;
+    if Assigned(FOnAddEvent) then
+      FOnAddEvent(self, mvActiveEvent);
+    Invalidate;
+  end else begin
+    if NewEvent then begin
+      DataStore.Resource.Schedule.DeleteEvent(mvActiveEvent);
+      mvActiveEvent := nil;
+    end;
+    DataStore.PostEvents;
+    Invalidate;
+  end;
+  mvActiveEvent := nil;
+end;
+
 procedure TVpMonthView.mvSpinButtonClick(Sender: TObject; Button: TUDBtnType);
 var
-  M, D, Y : Word;
+  M, D, Y: Word;
 begin
   DecodeDate(Date, Y, M, D);
   if Button = btNext then begin
@@ -1262,8 +748,8 @@ begin
     end else
       M := M - 1;
   end;
-  if (D > DaysInMonth(Y, M)) then
-    D := DaysInMonth(Y, M);
+  if (D > DaysInAMonth(Y, M)) then
+    D := DaysInAMonth(Y, M);
 
   Date := EncodeDate(Y, M, D);
 end;
@@ -1305,6 +791,13 @@ begin
 end;
 {=====}
 
+procedure TVpMonthView.SetOffDayFontColor(Value: TColor);
+begin
+  FOffDayFontColor := Value;
+  Invalidate;
+end;
+{=====}
+
 procedure TVpMonthView.SetDateLabelFormat(Value: string);
 begin
   if Value <> FDateLabelFormat then begin
@@ -1341,14 +834,14 @@ begin
 end;
 {=====}
 
-procedure TVpMonthView.SetDayNumberFont(Value: TFont);
+procedure TVpMonthView.SetDayNumberFont(Value: TVpFont);
 begin
   FDayNumberFont.Assign(Value);
   Invalidate;
 end;
 {=====}
 
-procedure TVpMonthView.SetEventFont(Value: TFont);
+procedure TVpMonthView.SetEventFont(Value: TVpFont);
 begin
   FEventFont.Assign(Value);
   Invalidate;
@@ -1432,10 +925,97 @@ begin
 end;
 {=====}
 
+procedure TVpMonthView.DoEndDrag(Target: TObject; X, Y: Integer);
+begin
+  Unused(Target, X, Y);
+
+  if ReadOnly or (not FAllowDragAndDrop) then
+    Exit;
+ {$IFNDEF LCL}
+  TVpEventDragObject(Target).Free;
+ {$ENDIF}
+ // not needed for LCL: we use DragObjectEx !!
+end;
+
+procedure TVpMonthView.DoStartDrag(var DragObject: TDragObject);
+{$IFDEF LCL}
+var
+  P, HotSpot: TPoint;
+  EventName: string;
+{$ENDIF}
+begin
+  if ReadOnly or not FAllowDragAndDrop then
+    Exit;
+
+  if mvActiveEvent <> nil then begin
+    {$IFDEF LCL}
+    GetCursorPos(P{%H-});
+    P := TVpMonthView(Self).ScreenToClient(P);
+    EventName := mvActiveEvent.Description;
+    HotSpot := Point(P.X - Self.mvActiveEventRec.Left, P.Y - Self.mvActiveEventRec.Top);
+    DragObject := TVpEventDragObject.CreateWithDragImages(Self as TControl,
+      HotSpot, Self.mvActiveEventRec, EventName, FDragDropTransparent);
+   {$ELSE}
+    DragObject := DragObject := TVpEventDragObject.Create(Self);
+   {$ENDIF}
+    TVpEventDragObject(DragObject).Event := mvActiveEvent;
+  end
+  else
+   {$IFDEF LCL}
+    CancelDrag;
+   {$ELSE}
+    DragObject.Free;
+   {$ENDIF}
+end;
+
+procedure TVpMonthView.DragDrop(Source: TObject; X, Y: Integer);
+var
+  Event: TVpEvent;
+  i: Integer;
+  P: TPoint;
+  newDate, dateDiff: TDate;
+begin
+  if ReadOnly or (not FAllowDragAndDrop) then
+    Exit;
+
+  P := Point(X, Y);
+  newDate := -1;
+  for i := 0 to pred(Length(mvMonthdayArray)) do
+    if PointInRect(P, mvMonthdayArray[i].Rec) then begin
+      newDate := mvMonthdayArray[i].Date;
+      break;
+    end;
+  if newDate = -1 then
+    exit;
+
+  Event := TVpEventDragObject(Source).Event;
+  if Event <> nil then begin
+    dateDiff := trunc(newDate) - trunc(Event.StartTime);
+    Event.StartTime := newDate + frac(Event.StartTime);
+    Event.EndTime := Event.EndTime + dateDiff;
+    DataStore.PostEvents;
+    Repaint;
+  end;
+end;
+
+procedure TVpMonthView.DragOver(Source: TObject; X, Y: Integer;
+  State: TDragState; var Accept: Boolean);
+begin
+  Unused(Source, X, State);
+
+  Accept := false;
+  if ReadOnly or (not FAllowDragAndDrop) then
+    Exit;
+
+  if (Y > mvDayHeadHeight) then
+    Accept := true;
+end;
+
+
 {$IFNDEF LCL}
-procedure TVpMonthView.WMLButtonDown(var Msg : TWMLButtonDown);
+procedure TVpMonthView.WMLButtonDown(var Msg: TWMLButtonDown);
 {$ELSE}
-procedure TVpMonthView.WMLButtonDown(var Msg : TLMLButtonDown);
+procedure TVpMonthView.WMLButtonDown(var Msg: TLMLButtonDown);
 {$ENDIF}
 begin
   inherited;
@@ -1447,9 +1027,9 @@ begin
     { The mouse click landed inside the client area }
     MvSetDateByCoord(Point(Msg.XPos, Msg.YPos));
     { Did the mouse click land on an event? }
-    if SelectEventAtCoord(Point(Msg.XPos, Msg.YPos))                     
-    and (Assigned(FOnEventClick)) then                                   
-        FOnEventClick(self, mvActiveEvent);                              
+    if SelectEventAtCoord(Point(Msg.XPos, Msg.YPos))
+    and (Assigned(FOnEventClick)) then
+        FOnEventClick(self, mvActiveEvent);
   end;
 end;
 {=====}
@@ -1459,31 +1039,56 @@ procedure TVpMonthView.WMLButtonDblClick(var Msg: TWMLButtonDblClk);
 {$ELSE}
 procedure TVpMonthView.WMLButtonDblClick(var Msg: TLMLButtonDblClk);
 {$ENDIF}
-begin                                                                    
-  inherited;                                                             
-  // if the mouse was pressed down in the client area, then select the   
-  // cell.                                                               
-  if not focused then SetFocus;                                          
-                                                                         
-  if (Msg.YPos > mvDayHeadHeight) then                                   
-  begin                                                                  
-    { The mouse click landed inside the client area }                    
-    MvSetDateByCoord(Point(Msg.XPos, Msg.YPos));                         
-    { Did the mouse click land on an event? }                            
-    if SelectEventAtCoord(Point(Msg.XPos, Msg.YPos))                     
-    and (Assigned(FOnEventDblClick)) then                                
-      FOnEventDblClick(self, mvActiveEvent)
-    else if Assigned(OnDblClick) then OnDblClick(Self);
-  end;                                                                   
-end;                                                                     
-{=====}                                                                  
+var
+  startTime, endTime: TDateTime;
+  newevent: Boolean;
+begin
+  inherited;
+
+  mvMouseDownPoint := Point(0, 0);
+  mvMouseDown := false;
+  mvDragging := false;
+
+  // if the mouse was pressed down in the client area, then select the cell.
+  if not focused then SetFocus;
+
+  if (Msg.YPos > mvDayHeadHeight) then
+  begin
+    { The mouse click landed inside the client area }
+    MvSetDateByCoord(Point(Msg.XPos, Msg.YPos));
+
+    { Did the mouse click land on an event? }
+    if Assigned(FOnEventDblClick) then begin
+      if SelectEventAtCoord(Point(Msg.XPos, Msg.YPos)) then
+        FOnEventDblClick(self, mvActiveEvent);
+    end else
+    if mvActiveEvent <> nil then begin
+      newevent := not SelectEventAtCoord(Point(Msg.XPos, Msg.YPos));
+      mvSpawnEventEditDialog(newevent);
+    end else
+    if (DataStore.Resource <> nil) then begin
+      { otherwise, we must want to create a new event }
+      startTime := trunc(Date) + 0.5; { default to 12:00 noon }
+      endTime := startTime + 30 / MinutesInDay; { StartTime + 30 minutes }
+      mvActiveEvent := DataStore.Resource.Schedule.AddEvent(
+        DataStore.GetNextID('Events'),
+        startTime,
+        endTime
+      );
+      { edit this new event }
+      mvSpawnEventEditDialog(True);  // true = new event
+    end;
+  end;
+end;
+{=====}
 
 {$IFNDEF LCL}
-procedure TVpMonthView.WMSetFocus(var Msg : TWMSetFocus);
+procedure TVpMonthView.WMSetFocus(var Msg: TWMSetFocus);
 {$ELSE}
-procedure TVpMonthView.WMSetFocus(var Msg : TLMSetFocus);
+procedure TVpMonthView.WMSetFocus(var Msg: TLMSetFocus);
 {$ENDIF}
 begin
+  Unused(Msg);
   // if active event is nil then set active event to the first diaplsyed one.
 end;
 {=====}
@@ -1498,107 +1103,187 @@ end;
 {=====}
 
 {$IFNDEF LCL}
-procedure TVpMonthView.WMRButtonDown(var Msg : TWMRButtonDown);
+procedure TVpMonthView.WMRButtonDown(var Msg: TWMRButtonDown);
 {$ELSE}
-procedure TVpMonthView.WMRButtonDown(var Msg : TLMRButtonDown);
+procedure TVpMonthView.WMRButtonDown(var Msg: TLMRButtonDown);
 {$ENDIF}
-var
-  ClientOrigin : TPoint;
 begin
   inherited;
-
   if not Assigned (PopupMenu) then begin
     if not focused then
       SetFocus;
-    if FRightClickChangeDate then                                        
-      mvSetDateByCoord (Point (Msg.XPos, Msg.YPos));                     
+    if FRightClickChangeDate then
+      mvSetDateByCoord (Point (Msg.XPos, Msg.YPos));
+  end;
+end;
+{=====}
+
+procedure TVpMonthView.ShowHintWindow(APoint: TPoint; ADate: TDateTime);
+var
+  txt, s: String;
+  i: Integer;
+  event: TVpEvent;
+  list: TList;
+  holiday: String = '';
+  todayDate: TDate;
+begin
+  HideHintWindow;
+
+  if (csDesigning in ComponentState) then
+    exit;
+
+  case FHintMode of
+    hmPlannerHint:
+      begin
+        if (ADate = 0) or (Datastore = nil) or (Datastore.Resource = nil) then
+          exit;
+        txt := '';
+        // If the date is a holiday we put the holidayname at the top
+        IsHoliday(ADate, holiday);
+        // Collect all events of this day and add them separated by line feeds to
+        // the hint string (txt).
+        list := TList.Create;
+        try
+          Datastore.Resource.Schedule.EventsByDate(ADate, List);
+          for i:=0 to list.Count-1 do begin
+            event := TVpEvent(list[i]);
+            s := BuildEventString(event, true, false);
+            txt := IfThen(txt = '', s, txt + LineEnding  + s);
+          end;
+        finally
+          list.Free;
+        end;
+        // If we have any events then we put the current date at the top.
+        todayDate := SysUtils.Date();
+        if (txt = '') and (holiday = '') and (ADate = todayDate) then
+          txt := RSToday + LineEnding + FormatDateTime('ddddd', ADate)
+        else
+        if (txt <> '') or (holiday <> '') then begin
+          if (txt = '') and (holiday <> '') then
+            txt := FormatDateTime('ddddd', ADate) + LineEnding + holiday
+          else begin
+            txt := LineEnding + txt;
+            if holiday <> '' then
+              txt := holiday + LineEnding + txt;
+            txt := FormatDateTime('ddddd', ADate) + LineEnding + txt;
+            if ADate = todayDate then
+              txt := RSToday + LineEnding + txt;
+          end;
+        end;
+      end;
+    hmComponentHint:
+      txt :=  FComponentHint;
+  end;
+  if (txt <> '') then begin
+    Hint := txt;
+    Application.Hint := txt;
+    Application.ActivateHint(ScreenToClient(APoint), true);
+  end else
+  if FHintMode = hmPlannerHint then begin
+    Hint := '';
+    Application.Hint := '';
   end;
 end;
 
-{=====}
+procedure TVpMonthView.HideHintWindow;
+begin
+  Application.CancelHint;
+end;
+
+procedure TVpMonthView.SetHint(const AValue: TTranslateString);
+begin
+  inherited;
+  if FHintMode = hmComponentHint then
+    FComponentHint := AValue;
+end;
 
 procedure TVpMonthView.InitializeDefaultPopup;
 var
   NewItem : TMenuItem;
-
 begin
-  if RSMonthPopupToday <> '' then begin
-    NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSMonthPopupToday;
+  if RSToday <> '' then begin
+    NewItem := TMenuItem.Create(Self);
+    NewItem.Caption := RSToday;
     NewItem.OnClick := PopupToday;
-    FDefaultPopup.Items.Add (NewItem);
+    FDefaultPopup.Items.Add(NewItem);
   end;
 
-  if RSMonthPopupNextMonth <> '' then begin
-    NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSMonthPopupNextMonth;
+  NewItem := TMenuItem.Create(Self);
+  NewItem.Caption := '-';
+  FDefaultPopup.Items.Add(NewItem);
+
+  if RSNextMonth <> '' then begin
+    NewItem := TMenuItem.Create(Self);
+    NewItem.Caption := RSNextMonth;
     NewItem.OnClick := PopupNextMonth;
-    FDefaultPopup.Items.Add (NewItem);
+    FDefaultPopup.Items.Add(NewItem);
   end;
 
-  if RSMonthPopupPrevMonth <> '' then begin
-    NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSMonthPopupPrevMonth;
+  if RSPrevMonth <> '' then begin
+    NewItem := TMenuItem.Create(Self);
+    NewItem.Caption := RSPrevMonth;
     NewItem.OnClick := PopupPrevMonth;
-    FDefaultPopup.Items.Add (NewItem);
+    FDefaultPopup.Items.Add(NewItem);
   end;
 
-  if RSMonthPopupNextYear <> '' then begin
-    NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSMonthPopupNextYear;
+  NewItem := TMenuItem.Create(Self);
+  NewItem.Caption := '-';
+  FDefaultPopup.Items.Add(NewItem);
+
+  if RSNextYear <> '' then begin
+    NewItem := TMenuItem.Create(Self);
+    NewItem.Caption := RSNextYear;
     NewItem.OnClick := PopupNextYear;
-    FDefaultPopup.Items.Add (NewItem);
+    FDefaultPopup.Items.Add(NewItem);
   end;
 
-  if RSMonthPopupPrevYear <> '' then begin
-    NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSMonthPopupPrevYear;
+  if RSPrevYear <> '' then begin
+    NewItem := TMenuItem.Create(Self);
+    NewItem.Caption := RSPrevYear;
     NewItem.OnClick := PopupPrevYear;
-    FDefaultPopup.Items.Add (NewItem);
+    FDefaultPopup.Items.Add(NewItem);
   end;
 end;
 {=====}
 
-procedure TVpMonthView.PopupToday (Sender : TObject);
+procedure TVpMonthView.PopupToday(Sender: TObject);
 begin
   Date := Now;
 end;
 {=====}
 
-procedure TVpMonthView.PopupNextMonth (Sender : TObject);
+procedure TVpMonthView.PopupNextMonth(Sender: TObject);
 begin
-  mvSpinButtonClick (self, btNext);
+  mvSpinButtonClick(self, btNext);
 end;
 {=====}
 
-procedure TVpMonthView.PopupPrevMonth (Sender : TObject);
+procedure TVpMonthView.PopupPrevMonth(Sender: TObject);
 begin
-  mvSpinButtonClick (self, btPrev);
+  mvSpinButtonClick(self, btPrev);
 end;
 {=====}
 
-procedure TVpMonthView.PopupNextYear (Sender : TObject);
+procedure TVpMonthView.PopupNextYear(Sender: TObject);
 var
-  M, D, Y : Word;
-
+  M, D, Y: Word;
 begin
-  DecodeDate (Date, Y, M, D);
-  Date := EncodeDate (Y + 1, M, 1);
+  DecodeDate(Date, Y, M, D);
+  Date := EncodeDate(Y + 1, M, 1);
 end;
 {=====}
 
-procedure TVpMonthView.PopupPrevYear (Sender : TObject);
+procedure TVpMonthView.PopupPrevYear(Sender: TObject);
 var
-  M, D, Y : Word;
-
+  M, D, Y: Word;
 begin
-  DecodeDate (Date, Y, M, D);
-  Date := EncodeDate (Y - 1, M, 1);
+  DecodeDate(Date, Y, M, D);
+  Date := EncodeDate(Y - 1, M, 1);
 end;
 {=====}
 
 { - renamed from EditEventAtCoord and re-written}
-function TVpMonthView.SelectEventAtCoord(Point: TPoint): Boolean;        
+function TVpMonthView.SelectEventAtCoord(Point: TPoint): Boolean;
 var
   I: Integer;
 begin
@@ -1627,98 +1312,218 @@ begin
 end;
 {=====}
 
-procedure TVpMonthView.mvSetDateByCoord(Point: TPoint);
+procedure TVpMonthView.mvSetDateByCoord(APoint: TPoint);
 var
   I: Integer;
 begin
-  for I := 0 to pred(Length(mvMonthdayArray)) do begin
-    if (Point.X >= mvMonthdayArray[I].Rec.Left)
-    and (Point.X <= mvMonthdayArray[I].Rec.Right)
-    and (Point.Y >= mvMonthdayArray[I].Rec.Top)
-    and (Point.Y <= mvMonthdayArray[I].Rec.Bottom) then
+  for I := 0 to pred(Length(mvMonthdayArray)) do
+    if PointInRect(APoint, mvMonthdayArray[I].Rec) then begin
       Date := mvMonthdayArray[I].Date;
-  end;
+      break;
+    end;
 end;
+
+function TVpMonthView.GetDateAtCoord(APoint: TPoint): TDateTime;
+var
+  i: Integer;
+begin
+  for i:=0 to High(mvMonthDayArray) do
+    if PointInRect(APoint, mvMonthDayArray[i].Rec) then begin
+      Result := mvMonthDayArray[i].Date;
+      exit;
+    end;
+  Result := 0;
+end;
+
 {=====}
 
 procedure TVpMonthView.KeyDown(var Key: Word; Shift: TShiftState);
 var
-  M, D, Y    : Word;
-  PopupPoint : TPoint;
-
+  M, D, Y: Word;
+  PopupPoint: TPoint;
 begin
   if FKBNavigate then
     case Key of
-      VK_UP    :
+      VK_UP :
         if ssCtrl in Shift then begin
           DecodeDate(Date, Y, M, D);
           Date := EncodeDate(Y - 1, M, 1);
         end else
           Date := Date - 7;
-      VK_DOWN  :
+      VK_DOWN:
         if ssCtrl in Shift then begin
           DecodeDate(Date, Y, M, D);
           Date := EncodeDate(Y + 1, M, 1);
         end else
           Date := Date + 7;
-      VK_NEXT  : mvSpinButtonClick(self, btNext);
-      VK_PRIOR : mvSpinButtonClick(self, btPrev);
-      VK_LEFT  :
+      VK_NEXT:
+        mvSpinButtonClick(self, btNext);
+      VK_PRIOR:
+        mvSpinButtonClick(self, btPrev);
+      VK_LEFT:
         if ssCtrl in Shift then
           mvSpinButtonClick(self, btPrev)
         else
           Date := Date - 1;
-      VK_RIGHT :
+      VK_RIGHT:
         if ssCtrl in Shift then
           mvSpinButtonClick(self, btNext)
         else
           Date := Date + 1;
-      VK_HOME  : begin
-        DecodeDate(Date, Y, M, D);
-        if D = 1 then
-          mvSpinButtonClick(self, btPrev)
-        else
-          Date := EncodeDate(Y, M, 1);
-      end;
-      VK_END   : begin
-        DecodeDate(Date, Y, M, D);
-        if D = DaysInMonth(Y, M) then begin
-          if M = 12 then begin
-            M := 1;
-            Inc(Y);
-          end else
-            Inc(M);
+      VK_HOME:
+        begin
+          DecodeDate(Date, Y, M, D);
+          if D = 1 then
+            mvSpinButtonClick(self, btPrev)
+          else
+            Date := EncodeDate(Y, M, 1);
         end;
-        Date := EncodeDate(Y, M, DaysInMonth(Y, M));
-      end;
+      VK_END:
+        begin
+          DecodeDate(Date, Y, M, D);
+          if D = DaysInAMonth(Y, M) then begin
+            if M = 12 then begin
+              M := 1;
+              Inc(Y);
+            end else
+              Inc(M);
+          end;
+          Date := EncodeDate(Y, M, DaysInAMonth(Y, M));
+        end;
 {$IFNDEF LCL}
-      VK_TAB   :
+      VK_TAB:
         if ssShift in Shift then
-          Windows.SetFocus (GetNextDlgTabItem (GetParent (Handle), Handle, False))
+          Windows.SetFocus(GetNextDlgTabItem(GetParent(Handle), Handle, False))
         else
-          Windows.SetFocus (GetNextDlgTabItem (GetParent (Handle), Handle, True));
+          Windows.SetFocus(GetNextDlgTabItem(GetParent(Handle), Handle, True));
 {$ENDIF}
-      VK_F10   :
-        if (ssShift in Shift) and not (Assigned (PopupMenu)) then begin
+      VK_F10:
+        if (ssShift in Shift) and not Assigned(PopupMenu) then begin
           PopupPoint := GetClientOrigin;
-          FDefaultPopup.Popup (PopupPoint.x + 10,
-                               PopupPoint.y + 10);
+          FDefaultPopup.Popup(PopupPoint.x + 10, PopupPoint.y + 10);
         end;
-      VK_APPS  :
-        if not Assigned (PopupMenu) then begin
+      VK_APPS:
+        if not Assigned(PopupMenu) then begin
           PopupPoint := GetClientOrigin;
-          FDefaultPopup.Popup (PopupPoint.x + 10,
-                               PopupPoint.y + 10);
+          FDefaultPopup.Popup(PopupPoint.x + 10, PopupPoint.y + 10);
         end;
     end;
 end;
-{=====}
-procedure TVpMonthView.SetRightClickChangeDate (const v : Boolean);      
-begin                                                                    
-  if v <> FRightClickChangeDate then                                     
-    FRightClickChangeDate := v;                                          
-end;                                                                     
-{=====}
+
+procedure TVpMonthView.MouseDown(Button: TMouseButton; Shift: TShiftState;
+  X,Y: Integer);
+begin
+  inherited;
+
+  if not Focused then SetFocus;
+
+  { Left button }
+  if Button = mbLeft then
+  begin
+    mvMouseDown := true;
+    mvMouseDownPoint := Point(X, Y);
+
+    if (Y > mvDayHeadHeight) then
+    begin
+      { The mouse click landed inside the client area }
+//      oldDate := FDate;
+      mvSetDateByCoord(mvMouseDownPoint);
+  (*
+      { We must repaint the control here, before evaluation of the click on the
+        events, because if the day has changed by wvSetDateByCoord then events
+        will have different indexes in the event array; and index positions are
+        evaluated during painting. }
+      if oldDate <> FDate then
+        Paint;
+
+      { If an active event was clicked, then enable the click timer.  If the
+        item is double clicked before the click timer fires, then the edit
+        dialog will appear, otherwise the in-place editor will appear. }
+      if EventAtCoord(wvMouseDownPoint) then
+        wvClickTimer.Enabled := true;
+        *)
+    end;
+  end;
+                 (*
+  { Right button }
+  if Button = mbRight then
+  begin
+    if not Assigned(PopupMenu) then
+      exit;
+
+    { The mouse click landed inside the client area }
+    wvSetDateByCoord(Point(X, Y));
+    EventAtCoord(Point(X, Y));
+    wvClickTimer.Enabled := false;
+
+    if not Assigned(ActiveEvent) then begin
+      for i := 0 to FDefaultPopup.Items.Count - 1 do
+        if (FDefaultPopup.Items[i].Tag = 1) or (ReadOnly) then
+          FDefaultPopup.Items[i].Enabled := False;
+    end else begin
+      for i := 0 to FDefaultPopup.Items.Count - 1 do
+        FDefaultPopup.Items[i].Enabled := True;
+    end;
+  end;
+  *)
+end;
+
+procedure TVpMonthView.MouseEnter;
+begin
+  FMouseDate := 0;
+end;
+
+procedure TVpMonthView.MouseLeave;
+begin
+  HideHintWindow;
+end;
+
+procedure TVpMonthView.MouseMove(Shift: TShiftState; X, Y: Integer);
+var
+  day: TDateTime;
+begin
+  inherited MouseMove(Shift, X, Y);
+
+  if (mvActiveEvent <> nil) and (not ReadOnly) then begin
+    if (not mvDragging) and mvMouseDown and
+       ((mvMouseDownPoint.x <> x) or (mvMouseDownPoint.y <> y)) and
+       mvActiveEvent.CanEdit
+    then begin
+      mvDragging := true;
+      //mvClickTimer.Enabled := false;
+      BeginDrag(true);
+    end;
+  end;
+
+  if ShowHint then
+  begin
+    day := GetDateAtCoord(Point(X, Y));
+    if day = 0 then
+      HideHintWindow
+    else if FMouseDate <> day then begin
+      FMouseDate := day;
+      ShowHintWindow(Point(X, Y), day);
+    end;
+  end;
+end;
+
+procedure TVpMonthView.MouseUp(Button: TMouseButton; Shift: TShiftState;
+  X, Y: Integer);
+begin
+  inherited MouseUp(Button, Shift, X, Y);
+  if Button = mbLeft then begin
+    mvMouseDownPoint := Point(0, 0);
+    mvMouseDown := false;
+    mvDragging := false;
+  end;
+end;
+
+procedure TVpMonthView.SetRightClickChangeDate(const v: Boolean);
+begin
+  if v <> FRightClickChangeDate then
+    FRightClickChangeDate := v;
+end;
+
 procedure TVpMonthView.SetWeekStartsOn(Value: TVpDayType);
 begin
   if Value <> FWeekStartsOn then begin
@@ -1726,6 +1531,31 @@ begin
     Invalidate;
   end;
 end;
-{=====}
+
+
+{$IF VP_LCL_SCALING = 2}
+procedure TVpMonthView.ScaleFontsPPI(const AToPPI: Integer;
+  const AProportion: Double);
+begin
+  inherited;
+  DoScaleFontPPI(DayHeadAttributes.Font, AToPPI, AProportion);
+  DoScaleFontPPI(EventFont, AToPPI, AProportion);
+  DoScaleFontPPI(HeadAttributes.Font, AToPPI, AProportion);
+  DoScaleFontPPI(HolidayAttributes.Font, AToPPI, AProportion);
+  DoScaleFontPPI(TodayAttributes.Font, AToPPI, AProportion);
+  DoScaleFontPPI(WeekendAttributes.Font, AToPPI, AProportion);
+end;
+{$ELSEIF VP_LCL_SCALING = 1}
+procedure TVpMonthView.ScaleFontsPPI(const AProportion: Double);
+begin
+  inherited;
+  DoScaleFontPPI(DayHeadAttributes.Font, AProportion);
+  DoScaleFontPPI(EventFont, Aproportion);
+  DoScaleFontPPI(HeadAttributes.Font, AProportion);
+  DoScaleFontPPI(HolidayAttributes.Font, AProportion);
+  DoScaleFontPPI(TodayAttributes.Font, AProportion);
+  DoScaleFontPPI(WeekendAttributes.Font, AProportion);
+end;
+{$ENDIF}
 
 end.

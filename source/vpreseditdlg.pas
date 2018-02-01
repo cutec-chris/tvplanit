@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpResEditDlg;
 
@@ -34,14 +34,14 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,LResources,
+  LCLProc, LCLType, LCLIntf, LResources,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Messages, SysUtils,
+  SysUtils,
   {$IFDEF VERSION6} Variants, {$ENDIF}
-  Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  VpDlg, VpBase, VpData, ComCtrls, VpConst;
+  Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, ComCtrls,
+  VpDlg, VpBase, VpData, VpConst;
 
 type
   { forward declarations }
@@ -58,12 +58,13 @@ type
     lblNotes: TLabel;
     NotesMemo: TMemo;
     imgResources: TImage;
-    procedure OKBtnClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure CancelBtnClick(Sender: TObject);
     procedure Change(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure OKBtnClick(Sender: TObject);
   private
+    procedure PositionControls;
     procedure SetControls;
   public
     ReturnCode: TVpEditorReturnCode;
@@ -75,8 +76,8 @@ type
 
   TVpResourceEditDialog = class(TVpBaseDialog)
   protected {private}
-    reEditDlg         : TResEditForm;
-    reResource        : TVpResource;
+    reEditDlg: TResEditForm;
+    reResource: TVpResource;
     function Show: Boolean;
   public
     function Execute: Boolean; reintroduce;
@@ -92,9 +93,14 @@ function ExecuteResourceDlg(Resource: TVpResource): Boolean;
 
 implementation
 
-{$IFNDEF LCL}
-{$R *.DFM}
+{$IFDEF LCL}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
 {$ENDIF}
+
+uses
+  vpSR, vpMisc;
 
 function ExecuteResourceDlg(Resource: TVpResource): Boolean;
 var
@@ -157,6 +163,7 @@ begin
     EditForm.ShowModal;
     if EditForm.ReturnCode = rtCommit then begin
       EditForm.DePopulateSelf;
+      DataStore.NotifyDependents;
       result := true;
     end;
   finally
@@ -194,8 +201,23 @@ procedure TResEditForm.PopulateSelf;
 begin
   DescriptionEdit.Text := Resource.Description;
   NotesMemo.Text := Resource.Notes;
+
+  Caption := RSDlgResEditCaption;
+  tabResource.Caption := RSResource;
+  lblDescription.Caption := RSDlgResEditDescription;
+  lblNotes.Caption := RSNotes;
+  OKBtn.Caption := RSOKBtn;
+  CancelBtn.Caption := RSCancelBtn;
 end;
 {=====}
+
+procedure TResEditForm.PositionControls;
+begin
+  AlignOKCancel(OKBtn, CancelBtn, pnlBottom);
+  {$IFDEF NEW_ICONS}
+  LoadImageFromRCDATA(imgResources, 'VpPersons', 32, 48, 64);
+  {$ENDIF}
+end;
 
 procedure TResEditForm.OKBtnClick(Sender: TObject);
 begin
@@ -231,6 +253,7 @@ procedure TResEditForm.FormShow(Sender: TObject);
 begin
   DescriptionEdit.SetFocus;
   SetControls;
+  PositionControls;
 end;
 {=====}
 
@@ -238,11 +261,6 @@ procedure TResEditForm.SetControls;
 begin
   OKBtn.Enabled := (DescriptionEdit.Text <> '');
 end;
-
-initialization
-{$IFDEF LCL}
-  {$I vpreseditdlg.lrs}
-{$ENDIF}
 
 end.
   

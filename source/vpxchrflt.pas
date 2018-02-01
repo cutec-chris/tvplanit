@@ -33,11 +33,8 @@ unit VpXChrFlt;
 interface
 
 uses
-  SysUtils,
-  Classes,
-  VpSR,
-  VpBase,
-  VpXBase;
+  SysUtils, Classes, VpSR,
+  VpBase, VpXBase;
 
 const
   VpEndOfStream = #1;
@@ -92,73 +89,60 @@ type
     protected
       procedure csAdvanceLine;
       procedure csAdvanceLinePos;
-      procedure csGetCharPrim(var aCh : TVpUcs4Char;
-                              var aIsLiteral : Boolean);
-      function csGetNextBuffer : Boolean;
-      function csGetTwoAnsiChars(var Buffer) : Boolean;
-      function csGetUtf8Char : TVpUcs4Char;
+      procedure csGetCharPrim(out aCh: TVpUcs4Char); //; var aIsLiteral: Boolean);
+      function csGetNextBuffer: Boolean;
+      function csGetTwoAnsiChars(var Buffer): Boolean;
+      function csGetUtf8Char: TVpUcs4Char;
       procedure csIdentifyFormat;
-      procedure csPushCharPrim(aCh : TVpUcs4Char);
-      procedure csSetFormat(const aValue : TVpStreamFormat); override;
-
-      procedure csGetChar(var aCh : TVpUcs4Char;
-                          var aIsLiteral : Boolean);
+      procedure csPushCharPrim(aCh: TVpUcs4Char);
+      procedure csSetFormat(const aValue: TVpStreamFormat); override;
+      procedure csGetChar(out aCh: TVpUcs4Char); //; var aIsLiteral: Boolean);
 
     public
-      constructor Create(aStream : TStream; const aBufSize : Longint); override;
+      constructor Create(aStream: TStream; const aBufSize: Longint); override;
 
-      property Format : TVpStreamFormat
-         read FFormat
-         write csSetFormat;
-      property EOF : Boolean
-         read FEOF;
+      property Format: TVpStreamFormat read FFormat write csSetFormat;
+      property EOF: Boolean read FEOF;
+
     public
       procedure SkipChar;
-      function TryRead(const S : array of Longint) : Boolean;
-      function ReadChar : DOMChar;
-      function ReadAndSkipChar : DOMChar;
-      property Line : LongInt
-         read FLine;
-      property LinePos : LongInt
-         read FLinePos;
+      function TryRead(const S: array of Longint) : Boolean;
+      function ReadChar: DOMChar;
+      function ReadAndSkipChar: DOMChar;
+
+      property Line : LongInt read FLine;
+      property LinePos : LongInt read FLinePos;
   end;
 
   TVpOutCharFilter = class(TVpBaseCharFilter)
     protected
-      FFormat : TVpStreamFormat;
-      FSetUTF8Sig : Boolean;
+      FFormat: TVpStreamFormat;
+      FSetUTF8Sig: Boolean;
     protected
-      function csGetSize : LongInt; override;
-      procedure csPutUtf8Char(const aCh : TVpUcs4Char);
-      procedure csSetFormat(const aValue : TVpStreamFormat); override;
+      function csGetSize: LongInt; override;
+      procedure csPutUtf8Char(const aCh: TVpUcs4Char);
+      procedure csSetFormat(const aValue: TVpStreamFormat); override;
       procedure csWriteBuffer;
     public
-      constructor Create(aStream : TStream; const aBufSize : Longint); override;
+      constructor Create(aStream: TStream; const aBufSize: Longint); override;
       destructor Destroy; override;
 
-      procedure PutUCS4Char(aCh : TVpUcs4Char);
-      function  PutChar(aCh1, aCh2 : DOMChar;
-                    var aBothUsed  : Boolean) : Boolean;
-      function  PutString(const aText : DOMString) : Boolean;
+      procedure PutUCS4Char(aCh: TVpUcs4Char);
+      function PutChar(aCh1, aCh2: DOMChar; out aBothUsed: Boolean): Boolean;
+      function PutString(const aText: DOMString): Boolean;
       function Position : integer;
 
-      property Format : TVpStreamFormat
-         read FFormat
-         write csSetFormat;
-      property WriteUTF8Signature : Boolean
-         read FSetUTF8Sig
-         write FSetUTF8Sig;
-      property Size : LongInt
-         read csGetSize;
-
+      property Format: TVpStreamFormat read FFormat write csSetFormat;
+      property WriteUTF8Signature: Boolean read FSetUTF8Sig write FSetUTF8Sig;
+      property Size: LongInt read csGetSize;
   end;
 
 
 implementation
 
 const
-  CR      = 13; {Carriage return}
-  LF      = 10; {Line feed}
+  CR = 13; {Carriage return}
+  LF = 10; {Line feed}
 
 {====================================================================}
 constructor TVpBaseCharFilter.Create(aStream  : TStream;
@@ -225,8 +209,8 @@ begin
   Inc(FLinePos);
 end;
 {--------}
-procedure TVpInCharFilter.csGetCharPrim(var aCh : TVpUcs4Char;
-                                        var aIsLiteral : Boolean);
+procedure TVpInCharFilter.csGetCharPrim(out aCh: TVpUcs4Char);
+//  var aIsLiteral: Boolean);
 begin
   {Note: as described in the XML spec (2.11) all end-of-lines are
          passed as LF characters no matter what the original document
@@ -244,7 +228,7 @@ begin
    format of the stream of course}
   else begin
     case Format of
-      sfUTF8     : aCh := csGetUtf8Char;
+      sfUTF8: aCh := csGetUtf8Char;
     else
       {it is next to impossible that this else clause is reached; if
        it is we're in deep doggy doo-doo, so pretending that it's the
@@ -263,7 +247,7 @@ begin
     end
     else begin
       case Format of
-        sfUTF8     : aCh := csGetUtf8Char;
+        sfUTF8: aCh := csGetUtf8Char;
       else
         aCh := TVpUCS4Char(VpEndOfStream);
       end;
@@ -275,17 +259,14 @@ begin
 
   {check to see that the character is valid according to XML}
   if (aCh <> TVpUCS4Char(VpEndOfStream)) and (not VpIsChar(aCh)) then
-    raise EVpFilterError.CreateError (FStream.Position,
-                                       Line,
-                                       LinePos,
-                                       sInvalidXMLChar);
+    raise EVpFilterError.CreateError(FStream.Position, Line, LinePos, sInvalidXMLChar);
 end;
 {--------}
 function TVpInCharFilter.csGetNextBuffer : Boolean;
 begin
   if FStream.Position > FBufDMZ then
     {Account for necessary buffer overlap}
-    FStream.Position := FStream.Position - (FBufEnd - FBufPos);
+    FStream.Position := FStream.Position - (Int64(FBufEnd) - FBufPos);
   FBufEnd := FStream.Read(FBuffer^, FBufSize);
   FStreamPos := FStream.Position;
   FBufPos := 0;
@@ -381,12 +362,13 @@ begin
     if (FBuffer[0] = #$FE) and (FBuffer[1] = #$FF) then begin
       FFormat := sfUTF16BE;
       FBufPos := 2;
-    end else if (FBuffer[0] = #$FF) and (FBuffer[1] = #$FE) then begin
+    end else
+    if (FBuffer[0] = #$FF) and (FBuffer[1] = #$FE) then begin
       FFormat := sfUTF16LE;
       FBufPos := 2;
-    end else if (FBuffer[0] = #$EF) and
-                (FBuffer[1] = #$BB) and
-                (FBuffer[2] = #$BF) then begin
+    end else
+    if (FBuffer[0] = #$EF) and (FBuffer[1] = #$BB) and (FBuffer[2] = #$BF) then
+    begin
       FFormat := sfUTF8;
       FBufPos := 3;
     end else
@@ -395,14 +377,14 @@ begin
     FFormat := sfUTF8;
 end;
 {--------}
-procedure TVpInCharFilter.csPushCharPrim(aCh : TVpUcs4Char);
+procedure TVpInCharFilter.csPushCharPrim(aCh: TVpUcs4Char);
 begin
   Assert(FUCS4Char = TVpUCS4Char(VpNullChar));
   {put the char into the buffer}
   FUCS4Char := aCh;
 end;
 {--------}
-procedure TVpInCharFilter.csSetFormat(const aValue : TVpStreamFormat);
+procedure TVpInCharFilter.csSetFormat(const aValue: TVpStreamFormat);
 begin
   {we do not allow the UTF16 formats to be changed since they were
    well defined by the BOM at the start of the stream but all other
@@ -413,11 +395,10 @@ begin
     FFormat := aValue;
 end;
 {--------}
-procedure TVpInCharFilter.csGetChar(var aCh        : TVpUcs4Char;
-                                    var aIsLiteral : Boolean);
+procedure TVpInCharFilter.csGetChar(out aCh: TVpUcs4Char); //var aIsLiteral: Boolean);
 begin
   {get the next character; for an EOF raise an exception}
-  csGetCharPrim(aCh, aIsLiteral);
+  csGetCharPrim(aCh); //, aIsLiteral);
   if (aCh = TVpUCS4Char(VpEndOfStream)) then
     FEOF := True
   else
@@ -428,11 +409,11 @@ begin
       csAdvanceLinePos;
 end;
 {--------}
-function TVpInCharFilter.TryRead(const S : array of Longint) : Boolean;
+function TVpInCharFilter.TryRead(const S: array of Longint): Boolean;
 var
   Idx         : Longint;
   Ch          : TVpUcs4Char;
-  IL          : Boolean;
+//  IL          : Boolean;
   OldBufPos   : Longint;
   OldChar     : DOMChar;
   OldUCS4Char : TVpUcs4Char;
@@ -448,7 +429,7 @@ begin
   FInTryRead := True;
   try
     for Idx := Low(s) to High(S) do begin
-      csGetChar(Ch, IL);
+      csGetChar(Ch); //, IL);
       if Ch <> TVpUcs4Char(S[Idx]) then begin
         Result := False;
         Break;
@@ -481,11 +462,11 @@ end;
 {--------}
 function TVpInCharFilter.ReadandSkipChar : DOMChar;
 var
-  Ch     : TVpUCS4Char;
-  IL     : Boolean;
+  Ch: TVpUCS4Char;
+//  IL: Boolean;
 begin
   if FLastChar = '' then begin
-    csGetChar(Ch, IL);
+    csGetChar(Ch); //, IL);
     VpUcs4ToWideChar(Ch, Result);
   end else begin
     Result := FLastChar;
@@ -493,24 +474,22 @@ begin
   end;
   FLastChar := #0;
   FUCS4Char := TVpUCS4Char(VpNullChar);
-  if (FStreamSize = FStreamPos) and
-     (FBufPos = FBufEnd) then
+  if (FStreamSize = FStreamPos) and (FBufPos = FBufEnd) then
     FEOF := True;
 end;
 {--------}
-function TVpInCharFilter.ReadChar : DOMChar;
+function TVpInCharFilter.ReadChar: DOMChar;
 var
-  Ch     : TVpUCS4Char;
-  IL     : Boolean;
+  Ch: TVpUCS4Char = 0;  // to silence the compiler
+//  IL: Boolean;  // dto.
 begin
-  if FLastChar = '' then begin
-    csGetChar(Ch, IL);
+  if (FLastChar = '') or (FLastChar = #0) then begin  // wp: added #0
+    csGetChar(Ch); //, IL);
     VpUcs4ToWideChar(Ch, Result);
     Dec(FLinePos);
     FLastChar := Result;
     if (FUCS4Char <> TVpUCS4Char(VpNullChar)) then
-      if (Format = sfUTF16LE) or
-         (Format = sfUTF16BE) then
+      if (Format = sfUTF16LE) or (Format = sfUTF16BE) then
         Dec(FBufPos, 2)
       else if FBufPos > 0 then
         Dec(FBufPos, 1);
@@ -535,18 +514,18 @@ begin
   inherited Destroy;
 end;
 {--------}
-function TVpOutCharFilter.csGetSize : LongInt;
+function TVpOutCharFilter.csGetSize: LongInt;
 begin
   Result := FStream.Size + FBufPos;
 end;
 {--------}
-procedure TVpOutCharFilter.csPutUtf8Char(const aCh : TVpUcs4Char);
+procedure TVpOutCharFilter.csPutUtf8Char(const aCh: TVpUcs4Char);
 var
-  UTF8 : TVpUtf8Char;
-  i    : integer;
+  UTF8: TVpUtf8Char;
+  i: integer;
 begin
   if not VpUcs4ToUtf8(aCh, UTF8) then
-    raise EVpStreamError.CreateError (FStream.Position, sUCS_U8ConverErr);
+    raise EVpStreamError.CreateError(FStream.Position, sUCS_U8ConverErr);
   for i := 1 to length(UTF8) do begin
     if (FBufPos = FBufSize) then
       csWriteBuffer;
@@ -555,44 +534,50 @@ begin
   end;
 end;
 {--------}
-procedure TVpOutCharFilter.csSetFormat(const aValue : TVpStreamFormat);
+procedure TVpOutCharFilter.csSetFormat(const aValue: TVpStreamFormat);
 var
-  TooLate : Boolean;
+  TooLate: Boolean;
 begin
+  case Format of
+    sfUTF8:
+      TooLate := (FSetUTF8Sig and (Position > 3)) or ((not FSetUTF8Sig) and (Position > 0));
+    sfUTF16LE:
+      TooLate := (Position > 2);
+    sfUTF16BE:
+      TooLate := (Position > 2);
+    sfISO88591:
+      TooLate := (Position > 0);
+  else
+    TooLate := true;
+  end;
+
+  if not TooLate then begin
+    FBufPos := 0;
+    FFormat := aValue;
     case Format of
-      sfUTF8     : TooLate := (FSetUTF8Sig and (Position > 3)) or
-                              ((not FSetUTF8Sig) and (Position > 0));
-      sfUTF16LE  : TooLate := (Position > 2);
-      sfUTF16BE  : TooLate := (Position > 2);
-      sfISO88591 : TooLate := (Position > 0);
+      sfUTF8:
+        if FSetUTF8Sig then begin
+          FBuffer[0] := #$EF;
+          FBuffer[1] := #$BB;
+          FBuffer[2] := #$BF;
+          FBufPos := 3;
+        end;
+      sfUTF16LE :
+        begin
+          FBuffer[0] := #$FF;
+          FBuffer[1] := #$FE;
+          FBufPos := 2;
+        end;
+      sfUTF16BE :
+        begin
+          FBuffer[0] := #$FE;
+          FBuffer[1] := #$FF;
+          FBufPos := 2;
+        end;
     else
-      TooLate := true;
-    end;
-    if not TooLate then begin
       FBufPos := 0;
-      FFormat := aValue;
-      case Format of
-        sfUTF8:
-          if FSetUTF8Sig then begin
-            FBuffer[0] := #$EF;
-            FBuffer[1] := #$BB;
-            FBuffer[2] := #$BF;
-            FBufPos := 3;
-          end;
-        sfUTF16LE : begin
-                      FBuffer[0] := #$FF;
-                      FBuffer[1] := #$FE;
-                      FBufPos := 2;
-                    end;
-        sfUTF16BE : begin
-                      FBuffer[0] := #$FE;
-                      FBuffer[1] := #$FF;
-                      FBufPos := 2;
-                    end;
-      else
-        FBufPos := 0;
-      end;
     end;
+  end;
 end;
 {--------}
 procedure TVpOutCharFilter.csWriteBuffer;
@@ -601,27 +586,27 @@ begin
   FBufPos := 0;
 end;
 {--------}
-procedure TVpOutCharFilter.PutUCS4Char(aCh : TVpUcs4Char);
+procedure TVpOutCharFilter.PutUCS4Char(aCh: TVpUcs4Char);
 begin
   case Format of
-    sfUTF8     : csPutUTF8Char(aCh);
+    sfUTF8: csPutUTF8Char(aCh);
   end;
 end;
 {--------}
-function TVpOutCharFilter.PutChar(aCh1, aCh2 : DOMChar;
-                              var aBothUsed  : Boolean) : Boolean;
+function TVpOutCharFilter.PutChar(aCh1, aCh2: DOMChar;
+  out aBothUsed: Boolean): Boolean;
 var
-  OutCh : TVpUCS4Char;
+  OutCh: TVpUCS4Char;
 begin
   Result := VpUTF16toUCS4(aCh1, aCh2, OutCh, aBothUsed);
   if Result then
     PutUCS4Char(OutCh);
 end;
 {--------}
-function TVpOutCharFilter.PutString(const aText : DOMString) : Boolean;
+function TVpOutCharFilter.PutString(const aText: DOMString): Boolean;
 var
-  aBothUsed : Boolean;
-  aLen, aPos : Integer;
+  aBothUsed: Boolean;
+  aLen, aPos: Integer;
 begin
   aLen := Length(aText);
   aPos := 1;
@@ -639,7 +624,7 @@ begin
   end;
 end;
 {--------}
-function TVpOutCharFilter.Position : integer;
+function TVpOutCharFilter.Position: Integer;
 begin
   Result := FStreamPos + FBufPos;
 end;

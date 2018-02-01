@@ -1,157 +1,262 @@
 object frmFieldMapper: TfrmFieldMapper
-  Left = 281
-  Height = 537
-  Top = 112
-  Width = 409
+  Left = 314
+  Height = 762
+  Top = 117
+  Width = 655
   HorzScrollBar.Page = 408
   VertScrollBar.Page = 536
   BorderStyle = bsToolWindow
   Caption = 'FlexDataStore Field Mapping Designer'
-  ClientHeight = 537
-  ClientWidth = 409
-  Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  ClientHeight = 762
+  ClientWidth = 655
   OnClose = FormClose
   OnShow = FormShow
   Position = poScreenCenter
-  object Panel1: TPanel
-    Height = 57
-    Top = 480
-    Width = 409
+  LCLVersion = '1.6.4.0'
+  object ButtonPanel: TPanel
+    Left = 0
+    Height = 35
+    Top = 727
+    Width = 655
     Align = alBottom
-    ClientHeight = 57
-    ClientWidth = 409
-    TabOrder = 0
-    object Button2: TButton
-      Left = 325
+    AutoSize = True
+    ClientHeight = 35
+    ClientWidth = 655
+    TabOrder = 1
+    object BtnOK: TButton
+      Left = 542
       Height = 25
-      Top = 16
-      Width = 75
-      Caption = 'Close'
-      OnClick = Button2Click
+      Top = 5
+      Width = 42
+      Align = alRight
+      AutoSize = True
+      BorderSpacing.Top = 4
+      BorderSpacing.Right = 4
+      BorderSpacing.Bottom = 4
+      Caption = 'OK'
+      ModalResult = 1
       TabOrder = 0
+    end
+    object BtnCancel: TButton
+      Left = 588
+      Height = 25
+      Top = 5
+      Width = 62
+      Align = alRight
+      AutoSize = True
+      BorderSpacing.Top = 4
+      BorderSpacing.Right = 4
+      BorderSpacing.Bottom = 4
+      Caption = 'Cancel'
+      ModalResult = 2
+      TabOrder = 1
     end
   end
   object PageControl1: TPageControl
-    Height = 480
-    Width = 409
+    Left = 0
+    Height = 727
+    Top = 0
+    Width = 655
     ActivePage = TabSheet1
     Align = alClient
     TabIndex = 0
-    TabOrder = 1
+    TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Field Mapping Designer'
-      ClientHeight = 454
-      ClientWidth = 401
-      object Bevel1: TBevel
-        Left = 5
-        Height = 315
-        Top = 4
-        Width = 390
-      end
-      object Label2: TLabel
-        Left = 10
-        Height = 13
-        Top = 36
-        Width = 116
-        Caption = 'Available Dataset Fields:'
-        ParentColor = False
-      end
-      object Label5: TLabel
-        Left = 35
-        Height = 13
-        Top = 329
-        Width = 74
+      ClientHeight = 699
+      ClientWidth = 647
+      object lblFieldMappings: TLabel
+        AnchorSideLeft.Control = lblDataset
+        AnchorSideTop.Control = DatasetFieldLB
+        AnchorSideTop.Side = asrBottom
+        Left = 8
+        Height = 15
+        Top = 437
+        Width = 84
+        BorderSpacing.Top = 8
         Caption = 'Field Mappings:'
         ParentColor = False
       end
-      object Label6: TLabel
-        Left = 242
-        Height = 13
-        Top = 36
-        Width = 137
-        Caption = 'Available Visual PlanIt Fields:'
-        ParentColor = False
-      end
-      object Label1: TLabel
-        Left = 12
-        Height = 13
-        Top = 13
-        Width = 40
-        Caption = 'Dataset:'
-        ParentColor = False
-      end
-      object DatasetFieldLB: TListBox
-        Left = 11
-        Height = 255
-        Top = 56
-        Width = 145
-        ItemHeight = 13
-        OnClick = DBFieldSelected
-        OnKeyPress = DatasetFieldLBKeyPress
-        TabOrder = 0
-      end
-      object VPFieldLB: TListBox
-        Left = 243
-        Height = 255
-        Top = 56
-        Width = 145
-        ItemHeight = 13
-        OnClick = VpFieldSelected
-        OnKeyPress = VPFieldLBKeyPress
-        TabOrder = 1
-      end
       object FieldMappingsLB: TListBox
-        Left = 35
-        Height = 100
-        Top = 349
-        Width = 217
-        ItemHeight = 13
+        AnchorSideLeft.Control = lblFieldMappings
+        AnchorSideTop.Control = lblFieldMappings
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = btnDeleteMapping
+        AnchorSideBottom.Control = TabSheet1
+        AnchorSideBottom.Side = asrBottom
+        Left = 8
+        Height = 235
+        Top = 456
+        Width = 459
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        BorderSpacing.Top = 4
+        BorderSpacing.Right = 8
+        BorderSpacing.Bottom = 8
+        ItemHeight = 0
         OnClick = FieldMappingsLBClick
         OnKeyPress = FieldMappingsLBKeyPress
-        TabOrder = 2
+        TabOrder = 0
       end
       object btnDeleteMapping: TButton
-        Left = 259
-        Height = 25
-        Top = 349
-        Width = 97
+        AnchorSideTop.Control = FieldMappingsLB
+        AnchorSideRight.Control = VPFieldLB
+        AnchorSideRight.Side = asrBottom
+        Left = 475
+        Height = 38
+        Top = 456
+        Width = 164
+        Anchors = [akTop, akRight]
         Caption = 'Delete Mapping'
         Enabled = False
         OnClick = btnDeleteMappingClick
-        TabOrder = 3
-      end
-      object DatasetCombo: TComboBox
-        Left = 56
-        Height = 21
-        Top = 10
-        Width = 145
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        ItemHeight = 13
-        OnChange = DatasetComboChange
-        TabOrder = 4
-        Text = 'DatasetCombo'
-      end
-      object btnAddMapping: TBitBtn
-        Left = 166
-        Height = 49
-        Top = 136
-        Width = 69
-        Caption = 'Add Field Mapping'
-        Enabled = False
-        NumGlyphs = 0
-        OnClick = btnAddMappingClick
-        TabOrder = 5
+        TabOrder = 1
       end
       object btnClearMappings: TButton
-        Left = 259
-        Height = 25
-        Top = 381
-        Width = 97
+        AnchorSideLeft.Control = btnDeleteMapping
+        AnchorSideTop.Control = btnDeleteMapping
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = btnDeleteMapping
+        AnchorSideRight.Side = asrBottom
+        Left = 475
+        Height = 38
+        Top = 498
+        Width = 164
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Top = 4
         Caption = 'Clear All '
         Enabled = False
         OnClick = btnClearMappingsClick
+        TabOrder = 2
+      end
+      object DatasetCombo: TComboBox
+        AnchorSideLeft.Control = lblDataset
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = TabSheet1
+        AnchorSideRight.Control = TabSheet1
+        AnchorSideRight.Side = asrBottom
+        Left = 58
+        Height = 23
+        Top = 8
+        Width = 581
+        Anchors = [akTop, akLeft, akRight]
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 8
+        BorderSpacing.Right = 8
+        ItemHeight = 15
+        OnChange = DatasetComboChange
+        TabOrder = 3
+        Text = 'DatasetCombo'
+      end
+      object lblDataset: TLabel
+        AnchorSideLeft.Control = TabSheet1
+        AnchorSideTop.Control = DatasetCombo
+        AnchorSideTop.Side = asrCenter
+        Left = 8
+        Height = 15
+        Top = 12
+        Width = 42
+        BorderSpacing.Left = 8
+        Caption = 'Dataset:'
+        ParentColor = False
+      end
+      object lblDBFieldsAvail: TLabel
+        AnchorSideLeft.Control = lblDataset
+        AnchorSideTop.Control = DatasetCombo
+        AnchorSideTop.Side = asrBottom
+        Left = 8
+        Height = 15
+        Top = 39
+        Width = 126
+        BorderSpacing.Top = 8
+        Caption = 'Available Dataset Fields:'
+        ParentColor = False
+      end
+      object DatasetFieldLB: TListBox
+        AnchorSideLeft.Control = lblDataset
+        AnchorSideTop.Control = lblDBFieldsAvail
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = btnAddMapping
+        AnchorSideBottom.Side = asrBottom
+        Left = 8
+        Height = 371
+        Top = 58
+        Width = 259
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        BorderSpacing.Top = 4
+        BorderSpacing.Right = 4
+        ItemHeight = 0
+        OnClick = DBFieldSelected
+        OnKeyPress = DatasetFieldLBKeyPress
+        TabOrder = 4
+      end
+      object lblVPFieldsAvail: TLabel
+        AnchorSideLeft.Control = VPFieldLB
+        AnchorSideTop.Control = lblDBFieldsAvail
+        Left = 379
+        Height = 15
+        Top = 39
+        Width = 151
+        Caption = 'Available Visual PlanIt Fields:'
+        ParentColor = False
+      end
+      object btnAddMapping: TBitBtn
+        AnchorSideLeft.Control = TabSheet1
+        AnchorSideLeft.Side = asrCenter
+        AnchorSideBottom.Control = Bevel2
+        Left = 271
+        Height = 72
+        Top = 161
+        Width = 104
+        Anchors = [akLeft, akBottom]
+        Caption = 'Add'
+        Enabled = False
+        OnClick = btnAddMappingClick
+        TabOrder = 5
+      end
+      object Bevel2: TBevel
+        AnchorSideLeft.Control = TabSheet1
+        AnchorSideLeft.Side = asrCenter
+        AnchorSideTop.Control = DatasetFieldLB
+        AnchorSideTop.Side = asrCenter
+        Left = 321
+        Height = 20
+        Top = 233
+        Width = 5
+        Shape = bsSpacer
+      end
+      object VPFieldLB: TListBox
+        AnchorSideLeft.Control = btnAddMapping
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = DatasetFieldLB
+        AnchorSideRight.Control = TabSheet1
+        AnchorSideRight.Side = asrBottom
+        AnchorSideBottom.Control = DatasetFieldLB
+        AnchorSideBottom.Side = asrBottom
+        Left = 379
+        Height = 371
+        Top = 58
+        Width = 260
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        BorderSpacing.Left = 4
+        BorderSpacing.Right = 8
+        ItemHeight = 0
+        OnClick = VpFieldSelected
+        OnKeyPress = VPFieldLBKeyPress
         TabOrder = 6
+      end
+      object btnAddAll: TButton
+        AnchorSideLeft.Control = TabSheet1
+        AnchorSideLeft.Side = asrCenter
+        AnchorSideTop.Control = Bevel2
+        AnchorSideTop.Side = asrBottom
+        Left = 271
+        Height = 72
+        Top = 253
+        Width = 104
+        Caption = 'Add all'
+        Enabled = False
+        OnClick = btnAddAllClick
+        TabOrder = 7
       end
     end
   end

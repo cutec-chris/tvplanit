@@ -34,35 +34,31 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,
+  LCLProc, LCLType, LCLIntf,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, TypInfo, ExtCtrls,
-
-  VpPrtFmt, VpBase, VpBaseDS, VpDlg, VpDBDS,{ VpBDEDS,} VpPrtPrv, VpPrtFmtCBox,
-  VpEdFmtLst;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls,
+  VpBase, VpBaseDS, VpDlg, VpPrtFmtCBox, VpEdFmtLst;
 
 type
 
-  TVpPrintFormatEditDialog = class (TVpBaseDialog)
+  TVpPrintFormatEditDialog = class(TVpBaseDialog)
   private
     FControlLink: TVpControlLink;
+    FDrawingStyle: TVpDrawingStyle;
     FWindowState: TWindowState;
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure SetControlLink(const Value: TVpControlLink);
   public
-    constructor Create (AOwner : TComponent); override;
-    function Execute : Boolean; override;
+    constructor Create(AOwner: TComponent); override;
+    function Execute: Boolean; override;
 
   published
-    property ControlLink : TVpControlLink
-      read FControlLink write SetControlLink;
-
-    property WindowState : TWindowState
-      read FWindowState write FWindowState default wsNormal;
+    property ControlLink : TVpControlLink read FControlLink write SetControlLink;
+    property DrawingStyle: TVpDrawingStyle read FDrawingStyle write FDrawingStyle default ds3d;
+    property WindowState : TWindowState read FWindowState write FWindowState default wsNormal;
 
     property Options;
     property Placement;
@@ -71,36 +67,40 @@ type
 
 implementation
 
+uses
+  TypInfo;
 
 { TVpPrintFormatEditDialog }
 
 constructor TVpPrintFormatEditDialog.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FControlLink      := SearchControlLink (Owner);
+  FControlLink := SearchControlLink (Owner);
+  FDrawingStyle := ds3d;
 
   FPlacement.Height := 480;
-  FPlacement.Width  := 640;
+  FPlacement.Width := 640;
 end;
 
 function TVpPrintFormatEditDialog.Execute: Boolean;
 var
   PrtFmtDlg : TfrmPrnFormat;
 begin
-  Application.CreateForm (TfrmPrnFormat, PrtFmtDlg);
+  PrtFmtDlg := TfrmPrnFormat.Create(Application);
+//  Application.CreateForm(TfrmPrnFormat, PrtFmtDlg);
   try
     DoFormPlacement(PrtFmtDlg);
     PrtFmtDlg.WindowState := WindowState;
     PrtFmtDlg.ControlLink := ControlLink;
+    PrtFmtDlg.DrawingStyle := FDrawingStyle;
     Result := PrtFmtDlg.Execute;
-
   finally
-    PrtFmtDlg.Release;
+    PrtFmtDlg.Free;
   end;
 end;
 
-procedure TVpPrintFormatEditDialog.Notification (AComponent : TComponent;
-                                               Operation  : TOperation);
+procedure TVpPrintFormatEditDialog.Notification(AComponent: TComponent;
+  Operation: TOperation);
   {-Handle new/deleted components}
 begin
   inherited Notification (AComponent, Operation);

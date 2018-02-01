@@ -35,12 +35,12 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,
+  LCLProc, LCLType, LCLIntf,
   {$ELSE}
   Windows,
   {$ENDIF}
-  Buttons, Classes, Controls, Forms, Graphics, Menus, Messages,
-  StdCtrls, SysUtils, VpBase, VpCalendar, VpConst, VpEdPop, VpMisc;
+  Buttons, Classes, Controls, Forms, Graphics, Menus, StdCtrls, SysUtils,
+  VpCalendar, VpConst, VpEdPop, VpMisc;
 
 type
   TVpDateOrder = (doMDY, doDMY, doYMD);
@@ -220,13 +220,15 @@ begin
   {get the date order from windows}
   C[0] := '0'; {default}
 //TODO:
-  {$IFNDEF LCL}
+  {$IFDEF DELPHI}
   GetProfileString('intl', 'iDate', '0', C, 2);
-  {$ENDIF}
-  DateOrder := TVpDateOrder(Ord(C[0])-Ord('0'));
-
   {load button glyph}
   FButton.Glyph.Handle := LoadBaseBitmap('VPBTNCAL');
+  {$ELSE}
+  DateOrder := TVpDateOrder(Ord(C[0])-Ord('0'));
+  {load button glyph}
+  FButton.Glyph.LoadFromResourceName(HINSTANCE,'VPBTNCAL');
+  {$ENDIF}
 
   {create color class}
   FPopupCalColors := TVpCalColors.Create;
@@ -373,6 +375,8 @@ var
   P : TPoint;
   I : Integer;
 begin
+  Unused(Button, Shift);
+
   P := Point(X,Y);
   if not PtInRect(Calendar.ClientRect, P) then
     PopUpClose(Sender);
@@ -391,8 +395,10 @@ end;
 
 procedure TVpCustomDateEdit.PopupOpen;
 var
-  P           : TPoint;
-  MeasureFrom : TPoint;
+  P: TPoint;
+ {$IFNDEF LCL}
+  MeasureFrom: TPoint;
+ {$ENDIF}
 
 begin
   inherited PopupOpen;
@@ -434,7 +440,9 @@ begin
   Calendar.Colors.Assign(FPopupCalColors);
   {determine the proper position}
   P := Point (Left, Top + Height + 2);
-  MeasureFrom := Point (0, 0);
+ {$IFNDEF LCL}
+  MeasureFrom := Point(0, 0);
+ {$ENDIF}
   if Assigned (Parent) and (not (Parent is TForm)) then begin
     P.x := P.x + Parent.Left;
     P.y := P.y + Parent.Top;
@@ -465,6 +473,8 @@ end;
 
 procedure TVpCustomDateEdit.PopupDateChange(Sender : TObject; Date : TDateTime);
 begin
+  Unused(Date);
+
   {get the current value}
   SetDate(Calendar.Date);
   Modified := True;

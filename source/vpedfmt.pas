@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpEdFmt;
 
@@ -34,77 +34,97 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,
+  LCLProc, LCLType, LCLIntf,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, TypInfo, ComCtrls,
   VpPrtFmt;
 
 type
+
+  { TfrmEditFormat }
+
   TfrmEditFormat = class(TForm)
     btnCancel: TButton;
     btnOk: TButton;
     edDescription: TEdit;
     edName: TEdit;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
+    LblIncrement: TLabel;
+    LblDescription: TLabel;
+    LblName: TLabel;
+    Panel1: TPanel;
+    ButtonPanel: TPanel;
     rgDayIncrement: TRadioGroup;
     udIncrement: TUpDown;
     edIncrement: TEdit;
     procedure btnCancelClick(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
+  private
+    procedure PositionControls;
+    procedure SetCaptions;
   protected
     procedure SaveData(AFormat: TVpPrintFormatItem);
     procedure SetData(AFormat: TVpPrintFormatItem);
-    function Validate: Boolean;
-    { Private declarations }
+    function Validate(out AMsg: String; out AControl: TWinControl): Boolean;
   public
     function Execute(AFormat: TVpPrintFormatItem) : Boolean;
-    { Public declarations }
   end;
 
 
 implementation
 
-{$IFNDEF LCL}
-{$R *.DFM}
+{$IFDEF LCL}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
 {$ENDIF}
+
+uses
+  VpMisc, VpSR;
 
 { TfrmEditLayout }
 
 procedure TfrmEditFormat.FormShow(Sender: TObject);
 begin
+  PositionControls;
   edName.SetFocus;
 end;
-{=====}
+
 procedure TfrmEditFormat.btnCancelClick(Sender: TObject);
 begin
   ModalResult := mrCancel;
 end;
-{=====}
+
 procedure TfrmEditFormat.btnOkClick(Sender: TObject);
+var
+  msg: String;
+  C: TWinControl;
 begin
-  if Validate then
-    ModalResult := mrOk
-  else begin
-    ShowMessage('Please supply a Format Name');
-    edName.SetFocus;
-    Exit;
+  if not Validate(msg, C) then
+  begin
+    C.SetFocus;
+    MessageDlg(msg, mtError, [mbOK], 0);
+    ModalResult := mrNone;
   end;
 end;
-{=====}
+
 function TfrmEditFormat.Execute(AFormat: TVpPrintFormatItem) : Boolean;
 begin
   SetData(AFormat);
-  Result := ShowModal = mrOk;
+  Result := (ShowModal = mrOk);
   if Result then
     SaveData(AFormat);
 end;
-{=====}
+
+procedure TfrmEditFormat.FormCreate(Sender: TObject);
+begin
+  SetCaptions;
+end;
+
 procedure TfrmEditFormat.SaveData(AFormat: TVpPrintFormatItem);
 var
   EnumVal : Integer;
@@ -112,37 +132,58 @@ begin
   AFormat.FormatName := edName.Text;
   AFormat.Description := edDescription.Text;
   AFormat.DayInc := udIncrement.Position;
-
-  EnumVal := GetEnumValue(TypeInfo(TVpDayUnits), 'du' + rgDayIncrement.Items[rgDayIncrement.ItemIndex]);
+  EnumVal := rgDayIncrement.ItemIndex;
   if EnumVal > -1 then
     AFormat.DayIncUnits := TVpDayUnits(EnumVal)
   else
     AFormat.DayIncUnits := duDay;
 end;
-{=====}
+
+procedure TfrmEditFormat.SetCaptions;
+begin
+  Caption := RSEditFormatCaption;
+  LblName.Caption := RSNameLbl;
+  LblDescription.Caption := RSDescriptionLbl;
+  LblIncrement.Caption := RsTimeIncLbl;
+  rgDayIncrement.Caption := RsTimeIncUnits;
+  rgDayIncrement.Items[0] := RSDays;
+  rgDayIncrement.Items[1] := RSWeeks;
+  rgDayIncrement.Items[2] := RSMonths;
+  rgDayIncrement.Items[3] := RSYears;
+  btnOK.Caption := RSOKBtn;
+  btnCancel.Caption := RSCancelBtn;
+end;
+
+procedure TfrmEditFormat.PositionControls;
+begin
+  AlignOKCancel(btnOK, btnCancel, ButtonPanel);
+  udIncrement.Width := udIncrement.Height div 2 + 1;
+end;
+
 procedure TfrmEditFormat.SetData(AFormat: TVpPrintFormatItem);
-var
-  IncName : string;
 begin
   edName.Text := AFormat.FormatName;
   edDescription.Text := AFormat.Description;
   udIncrement.Position := AFormat.DayInc;
-
-  IncName := GetEnumName(TypeInfo(TVpDayUnits), Ord(AFormat.DayIncUnits));
-  if IncName <> '' then begin
-    rgDayIncrement.ItemIndex := rgDayIncrement.Items.IndexOf(Copy(IncName, 3, Length(IncName) - 2));
-  end
-  else
-    rgDayIncrement.ItemIndex := 0;
+  rgDayIncrement.ItemIndex := ord(AFormat.DayIncUnits);
 end;
-{=====}
-function TfrmEditFormat.Validate : Boolean;
+
+function TfrmEditFormat.Validate(out AMsg: String;
+  out AControl: TWinControl) : Boolean;
 begin
-  Result := edName.Text <> '';
+  Result := false;
+  if (edName.Text = '') then begin
+    AMsg := RSNoPrintFormatName;
+    AControl := edName;
+    exit;
+  end;
+  if (RgDayIncrement.ItemIndex < 0) then begin
+    AMsg := RSNoDayIncrement;
+    AControl := RgDayIncrement;
+    exit;
+  end;
+  Result := true;
 end;
-{=====}
-
-
 
 end.
   

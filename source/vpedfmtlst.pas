@@ -34,15 +34,13 @@ interface
 
 uses     
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,
+  LCLProc, LCLType, LCLIntf,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, TypInfo, ExtCtrls,
-
-  VpPrtFmt, VpBase, VpBaseDS, VpDBDS,{ VpBDEDS,} VpPrtPrv, Buttons,
-  VpException, VpSR;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, ExtCtrls, Buttons,
+  VpPrtFmt, VpBase, VpBaseDS, VpPrtPrv, VpException, VpSR;
 
 const
   BaseCaption = 'Print Format Designer';
@@ -50,7 +48,11 @@ const
   UnnamedFile = '<Unnamed>';
 
 type
+
+  { TfrmPrnFormat }
+
   TfrmPrnFormat = class(TForm)
+    Bevel1: TBevel;
     btnDeleteElement: TButton;
     btnDeleteFormat: TButton;
     btnEditElement: TButton;
@@ -62,17 +64,17 @@ type
     btnNewFile: TButton;
     btnNewFormat: TButton;
     btnSaveFile: TButton;
-    Label1: TLabel;
-    Label2: TLabel;
+    LblPrintPreview: TLabel;
+    LblFormats: TLabel;
+    LblElements: TLabel;
     lbElements: TListBox;
     lbFormats: TListBox;
     OpenDialog1: TOpenDialog;
-    Panel1: TPanel;
-    Panel2: TPanel;
+    ButtonPanel: TPanel;
     PrintPreview: TVpPrintPreview;
     SaveDialog1: TSaveDialog;
     btnOk: TButton;
-    Label3: TLabel;
+    LblPrintOrder: TLabel;
     procedure btnDeleteElementClick(Sender: TObject);
     procedure btnDeleteFormatClick(Sender: TObject);
     procedure btnEditElementClick(Sender: TObject);
@@ -84,52 +86,56 @@ type
     procedure btnNewFileClick(Sender: TObject);
     procedure btnNewFormatClick(Sender: TObject);
     procedure btnSaveFileClick(Sender: TObject);
+    procedure btnOkClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure lbElementsClick(Sender: TObject);
     procedure lbFormatsClick(Sender: TObject);
-    procedure btnOkClick(Sender: TObject);
-    procedure FormShow(Sender: TObject);
     procedure lbElementsMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure lbElementsDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure lbElementsDragOver(Sender, Source: TObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean);
+
   private
-    FFormatFileName : string;                                          
-    FControlLink : TVpControlLink;
-    IsDirty : Boolean;
+    FFormatFileName: string;
+    FControlLink: TVpControlLink;
+    IsDirty: Boolean;
     LastX, LastY: Integer;
-    DragItem : Integer;
+    DragItem: Integer;
+    FDrawingStyle: TVpDrawingStyle;
+    procedure PositionControls;
+    procedure SetCaptions;
+    procedure SetDrawingStyle(const v: TVpDrawingStyle);
+
   protected
     function DirtyPrompt: Integer;
     procedure DoEditElement;
     procedure DoEditFormat;
     procedure DoNewElement;
     procedure DoNewFile;
-    function DoNewFormat : Integer;                                                                                 
+    function DoNewFormat: Integer;
     procedure DoSave;
     procedure EnableElementButtons(Enable: Boolean);
     procedure EnableFormatButtons(Enable: Boolean);
-    procedure EnableMoveButtons;                                       
-    procedure SetFormatFileName (const v : string);                    
+    procedure EnableMoveButtons;
+    procedure RebuildPreview;
+    procedure SetFormatFileName(const v: string);
     procedure UpdateFormats;
     procedure UpdateCaption;
     procedure UpdatePreview;
 
     function GetControlLink: TVpControlLink;
     procedure SetControlLink(const Value: TVpControlLink);
-    { Private declarations }
+
   public
+    function Execute: Boolean;
+    property ControlLink: TVpControlLink read FControlLink write SetControlLink;
+    property DrawingStyle: TVpDrawingStyle read FDrawingStyle write SetDrawingStyle;
 
-    property ControlLink : TVpControlLink
-      read FControlLink write SetControlLink;
-
-    function Execute : Boolean;
-    { Public declarations }
   published
-    property FormatFileName : string                                   
-             read FFormatFileName write SetFormatFileName;             
+    property FormatFileName : string read FFormatFileName write SetFormatFileName;
   end;
 
 var
@@ -138,10 +144,13 @@ var
 implementation
 
 uses
-  VpEdFmt, VpEdElem;
+  Math, TypInfo,
+  VpMisc, VpEdFmt, VpEdElem;
 
-{$IFNDEF LCL}
-{$R *.DFM}
+{$IFDEF DELPHI}
+ {$R *.dfm}
+{$ELSE}
+ {$R *.lfm}
 {$ENDIF}
 
 {TfrmPrnFormat}
@@ -152,22 +161,23 @@ begin
   IsDirty := False;
   FormatFileName := UnnamedFile;
 
-
-
   EnableFormatButtons(False);
   EnableElementButtons(False);
+
+  SetCaptions;
 end;
 {=====}
-procedure TfrmPrnFormat.EnableMoveButtons;                             
-begin                                                                  
-  btnMoveElementUp.Enabled := lbElements.ItemIndex > 0;                
-  btnMoveElementDn.Enabled :=                                          
-      lbElements.ItemIndex < lbElements.Items.Count - 1;               
+procedure TfrmPrnFormat.EnableMoveButtons;
+begin
+  btnMoveElementUp.Enabled := lbElements.ItemIndex > 0;
+  btnMoveElementDn.Enabled := (lbElements.ItemIndex > -1) and (lbElements.ItemIndex < lbElements.Items.Count - 1);
 end;                                                                   
 {=====}
 procedure TfrmPrnFormat.FormShow(Sender: TObject);
 begin
-  PrintPreview.Parent := Panel1;
+  PositionControls;
+
+  PrintPreview.Parent := Self; //PrintPreviewPanel;
 
   if ControlLink.Printer.PrintFormats.Count > 0 then begin
     UpdateFormats;
@@ -182,9 +192,9 @@ end;
 {=====}
 procedure TfrmPrnFormat.btnDeleteElementClick(Sender: TObject);
 var
-  Format : TVpPrintFormatItem;
-  Idx : Integer;
-  Item : string;
+  Format: TVpPrintFormatItem;
+  Idx: Integer;
+  Item: string;
 begin
   Format := TVpPrintFormatItem(lbFormats.Items.Objects[lbFormats.ItemIndex]);
   Item := '';
@@ -205,14 +215,13 @@ end;
 {=====}
 procedure TfrmPrnFormat.btnDeleteFormatClick(Sender: TObject);
 var
-  Prn : TVpPrinter;
-  Idx : Integer;
+  Prn: TVpPrinter;
+  Idx: Integer;
 begin
   Prn := ControlLink.Printer;
   Idx := Prn.Find(lbFormats.Items[lbFormats.ItemIndex]);
-  if (Idx < 0) or (Idx >= Prn.PrintFormats.Count) then                   
-    ShowMessage ('Invalid print format: ' +                              
-                 lbFormats.Items[lbFormats.ItemIndex]);                  
+  if (Idx < 0) or (Idx >= Prn.PrintFormats.Count) then
+    ShowMessage ('Invalid print format: ' + lbFormats.Items[lbFormats.ItemIndex]);
   Prn.PrintFormats.Items[Idx].Free;
   lbFormats.Items.Delete(lbFormats.ItemIndex);
   IsDirty := True;
@@ -231,23 +240,16 @@ end;
 {=====}
 procedure TfrmPrnFormat.btnLoadFileClick(Sender: TObject);
 var
-  Prn : TVpPrinter;
-  Rslt : Integer;
+  Prn: TVpPrinter;
+  Rslt: Integer;
 begin
   if IsDirty then begin
     Rslt := DirtyPrompt;
-
-{    case Rslt of
-      ID_YES: begin
-        DoSave;
-      end;
-
-      ID_NO: begin
-        // nothing
-      end;
-
-      ID_CANCEL: Exit;
-    end;}
+    case Rslt of
+      mrYes    : DoSave;
+      mrNo     : ; // nothing
+      mrCancel : Exit;
+    end;
   end;
 
   if OpenDialog1.Execute then begin
@@ -262,7 +264,7 @@ end;
 {=====}
 procedure TfrmPrnFormat.btnMoveElementDnClick(Sender: TObject);
 var
-  E : TVpPrintFormatElementItem;
+  E: TVpPrintFormatElementItem;
 begin
   if lbElements.ItemIndex > -1 then begin
     E := TVpPrintFormatElementItem(lbElements.Items.Objects[lbElements.ItemIndex]);
@@ -277,7 +279,7 @@ var
 begin
   if lbElements.ItemIndex > -1 then begin
     E := TVpPrintFormatElementItem(lbElements.Items.Objects[lbElements.ItemIndex]);
-    E.Index := E.Index - 1;            
+    E.Index := E.Index - 1;
     lbElements.Items.Move(lbElements.ItemIndex, lbElements.ItemIndex - 1);
   end;
 end;
@@ -288,43 +290,40 @@ begin
 end;
 {=====}
 procedure TfrmPrnFormat.btnNewFormatClick(Sender: TObject);
-var                                                                      
-  NewFormatIdx : Integer;                                                
-  i            : Integer;                                                
-
+var
+  NewFormatIdx: Integer;
+  i: Integer;
 begin
-  NewFormatIdx := DoNewFormat;                                           
-  if (NewFormatIdx > 0) and                                              
-     (Assigned (ControlLink)) and                                        
-     (NewFormatIdx < ControlLink.Printer.PrintFormats.Count) then        
-    for i := 0 to lbFormats.Items.Count - 1 do                           
-      if lbFormats.Items[i] = ControlLink.Printer.PrintFormats.          
-             Items[NewFormatIdx].FormatName then begin                   
-        lbFormats.ItemIndex := i;                                        
-        lbFormatsClick (Self);                                           
-        Break;                                                           
-      end;                                                               
+  NewFormatIdx := DoNewFormat;
+  if (NewFormatIdx > 0) and (Assigned (ControlLink)) and
+     (NewFormatIdx < ControlLink.Printer.PrintFormats.Count)
+  then
+    for i := 0 to lbFormats.Items.Count - 1 do
+      if lbFormats.Items[i] = ControlLink.Printer.PrintFormats.Items[NewFormatIdx].FormatName then
+      begin
+        lbFormats.ItemIndex := i;
+        lbFormatsClick(Self);
+        Break;
+      end;
 end;
 {=====}
 procedure TfrmPrnFormat.btnNewFileClick(Sender: TObject);
 var
-  Rslt : Integer;
+  Rslt: Integer;
 begin
   if IsDirty then begin
     Rslt := DirtyPrompt;
-
-{    case Rslt of
-      ID_YES: begin
-        DoSave;
+    case Rslt of
+      ID_YES:
+        begin
+          DoSave;
+          DoNewFile;
+        end;
+      ID_NO:
         DoNewFile;
-      end;
-
-      ID_NO: begin
-        DoNewFile;
-      end;
-
-      ID_CANCEL: Exit;
-    end;}
+      ID_CANCEL:
+        Exit;
+    end;
   end
   else
     DoNewFile;
@@ -340,17 +339,20 @@ begin
   DoSave;
 end;
 {=====}
-function TfrmPrnFormat.DirtyPrompt : Integer;
+function TfrmPrnFormat.DirtyPrompt: Integer;
+var
+  msg: String;
 begin
-  Result := Application.MessageBox(
-      PChar('Save changes to ' + FormatFileName + '?'),
-      PChar('Inquiry'),
-      MB_YESNOCANCEL or MB_ICONQUESTION);
+  if FormatFileName = '' then
+    msg := RSSaveFormatChangesToFile
+  else
+    msg := Format(RSSaveFormatChangesToFilename, [FormatFileName]);
+  Result := MessageDlg(msg, mtConfirmation, [mbYes, mbNo, mbCancel], 0);
 end;
 {=====}
 procedure TfrmPrnFormat.DoEditElement;
 var
-  E : TVpPrintFormatElementItem;
+  E: TVpPrintFormatElementItem;
   frmEditElement: TfrmEditElement;
 begin
   if lbElements.ItemIndex > -1 then begin
@@ -372,7 +374,7 @@ end;
 {=====}
 procedure TfrmPrnFormat.DoEditFormat;
 var
-  AFormat : TVpPrintFormatItem;
+  AFormat: TVpPrintFormatItem;
   frmEditFormat: TfrmEditFormat;
 begin
   if lbFormats.ItemIndex > -1 then begin
@@ -392,9 +394,9 @@ end;
 {=====}
 procedure TfrmPrnFormat.DoNewElement;
 var
-  Format : TVpPrintFormatItem;
-  E : TVpPrintFormatElementItem;
-  Unique, Cancelled : Boolean;
+  Format: TVpPrintFormatItem;
+  E: TVpPrintFormatElementItem;
+  Unique, Cancelled: Boolean;
   frmEditElement: TfrmEditElement;
 begin
   Format := TVpPrintFormatItem(lbFormats.Items.Objects[lbFormats.ItemIndex]);
@@ -435,7 +437,7 @@ end;
 {=====}
 procedure TfrmPrnFormat.DoNewFile;
 var
-  Prn : TVpPrinter;
+  Prn: TVpPrinter;
 begin
   Prn := ControlLink.Printer;
   Prn.PrintFormats.Clear;
@@ -449,14 +451,14 @@ begin
   EnableElementButtons(False);
 end;
 {=====}
-function TfrmPrnFormat.DoNewFormat : Integer;                            
+function TfrmPrnFormat.DoNewFormat: Integer;
 var
-  AFormat : TVpPrintFormatItem;
-  Prn : TVpPrinter;
-  Unique, Cancelled : Boolean;
+  AFormat: TVpPrintFormatItem;
+  Prn: TVpPrinter;
+  Unique, Cancelled: Boolean;
   frmEditFormat: TfrmEditFormat;
 begin
-  Result := -1;                                                          
+  Result := -1;
   Application.CreateForm(TfrmEditFormat, frmEditFormat);
 
   Prn := ControlLink.Printer;
@@ -487,8 +489,8 @@ begin
   { until format name is Unique or operation Cancelled }
   until Unique or Cancelled;
 
-  if not Cancelled then                                                  
-    Result := AFormat.Index;                                             
+  if not Cancelled then
+    Result := AFormat.Index;
 
   frmEditFormat.Free;
 end;
@@ -507,27 +509,27 @@ begin
   end;
 end;
 {=====}
-procedure TfrmPrnFormat.EnableElementButtons(Enable : Boolean);
+procedure TfrmPrnFormat.EnableElementButtons(Enable: Boolean);
 begin
   btnNewElement.Enabled := Enable;
   btnEditElement.Enabled := Enable;
   btnDeleteElement.Enabled := Enable;
 //  btnMoveElementUp.Enabled := Enable;                                
-//  btnMoveElementDn.Enabled := Enable;                                
-  EnableMoveButtons;                                                   
+//  btnMoveElementDn.Enabled := Enable;
+  EnableMoveButtons;
 end;
 {=====}
-procedure TfrmPrnFormat.EnableFormatButtons(Enable : Boolean);
+procedure TfrmPrnFormat.EnableFormatButtons(Enable: Boolean);
 begin
   btnNewFormat.Enabled := Enable;
   btnEditFormat.Enabled := Enable;
   btnDeleteFormat.Enabled := Enable;
 end;
 {=====}
-function TfrmPrnFormat.Execute : Boolean;
+function TfrmPrnFormat.Execute: Boolean;
 begin
   if not Assigned (ControlLink) then
-    raise EVpPrintFormatEditorError.Create (RSNoControlLink);
+    raise EVpPrintFormatEditorError.Create(RSNoControlLink);
 
   Result := ShowModal = mrOk;
 end;
@@ -535,28 +537,25 @@ end;
 procedure TfrmPrnFormat.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 var
-  Rslt : Integer;
+  Rslt: Integer;
 begin
   if IsDirty then begin
     Rslt := DirtyPrompt;
-
-{    case Rslt of
-      ID_YES: begin
-        DoSave;
+    case Rslt of
+      ID_YES:
+        begin
+          DoSave;
+          CanClose := True;
+        end;
+      ID_NO:
         CanClose := True;
-      end;
-
-      ID_NO: begin
-        CanClose := True;
-      end;
-
-      ID_CANCEL: begin
-        CanClose := False;
-        Exit;
-      end;
-    end; }
-  end
-  else
+      ID_CANCEL:
+        begin
+          CanClose := False;
+          Exit;
+        end;
+    end;
+  end else
     CanClose := True;
 end;
 {=====}
@@ -567,10 +566,13 @@ end;
 {=====}
 procedure TfrmPrnFormat.lbFormatsClick(Sender: TObject);
 var
-  E : TVpPrintFormatElementItem;
-  Prn : TVpPrinter;
-  i, Idx : Integer;
+  E: TVpPrintFormatElementItem;
+  Prn: TVpPrinter;
+  i, Idx: Integer;
 begin
+  if LbFormats.ItemIndex = -1 then
+    exit;
+
   lbElements.Items.Clear;
   Prn := ControlLink.Printer;
   Idx := Prn.Find(lbFormats.Items[lbFormats.ItemIndex]);
@@ -578,6 +580,7 @@ begin
   Prn.CurFormat := Idx;
 
   PrintPreview.ControlLink := ControlLink;
+  RebuildPreview;
 
   for i := 0 to Pred(Prn.PrintFormats.Items[Idx].Elements.Count) do begin
     E := Prn.PrintFormats.Items[Idx].Elements.Items[i];
@@ -600,57 +603,127 @@ end;
 procedure TfrmPrnFormat.lbElementsMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  LastX:=X;
-  LastY:=Y;
-  DragItem := (Sender as TListBox).ItemAtPos(Point(LastX, LastY),True);
+  Unused(Button, Shift);
+  LastX := X;
+  LastY := Y;
+  DragItem := (Sender as TListBox).ItemAtPos(Point(LastX, LastY), True);
 end;
 {=====}
-procedure TfrmPrnFormat.lbElementsDragDrop(Sender, Source: TObject; X,
-  Y: Integer);
+procedure TfrmPrnFormat.lbElementsDragDrop(Sender, Source: TObject; X, Y: Integer);
 var
-  lb : TListBox;
+  lb: TListBox;
   Dest: Integer;
-  E : TVpPrintFormatElementItem;
+  E: TVpPrintFormatElementItem;
 begin
   lb := Source as TListBox;
-  Dest:=lb.ItemAtPos(Point(X, Y),True);
+  Dest := lb.ItemAtPos(Point(X, Y), True);
   lb.Items.Move(DragItem, Dest);
   E := TVpPrintFormatElementItem(lbElements.Items.Objects[Dest]);
   E.Index := Dest;
   lb.ItemIndex := Dest;
-  EnableMoveButtons;                                                   
+  EnableMoveButtons;
 end;
 {=====}
-procedure TfrmPrnFormat.lbElementsDragOver(Sender, Source: TObject; X,
-  Y: Integer; State: TDragState; var Accept: Boolean);
+procedure TfrmPrnFormat.lbElementsDragOver(Sender, Source: TObject; X,Y: Integer;
+  State: TDragState; var Accept: Boolean);
 var
-  lb : TListBox;
+  lb: TListBox;
 begin
+  Unused(State);
   lb := (Source as TListBox);
   lb.Canvas.DrawFocusRect(lb.ItemRect(lb.ItemAtPos(Point(LastX, LastY), True)));
   lb.Canvas.DrawFocusRect(lb.ItemRect(lb.ItemAtPos(Point(X, Y), True)));
   LastX := X;
   LastY := Y;
-  Accept:=True;
+  Accept := True;
 end;
-{=====}
+
+procedure TfrmPrnFormat.RebuildPreview;
+begin
+  PrintPreview.ForceUpdate;
+  PrintPreview.FirstPage;
+end;
+
 procedure TfrmPrnFormat.SetControlLink(const Value: TVpControlLink);
 begin
-  if FControlLink <> Value then begin                                  
+  if FControlLink <> Value then begin
     FControlLink := Value;
-    if Assigned (FControlLink) then                                    
-      FFormatFileName := FControlLink.Printer.DefaultXMLFileName;      
-  end;                                                                 
+    if Assigned (FControlLink) then
+      FFormatFileName := FControlLink.Printer.DefaultXMLFileName;
+  end;
 end;
-{=====}
-procedure TfrmPrnFormat.SetFormatFileName (const v : string);          
-begin                                                                  
-  if v <> FFormatFileName then begin                                   
-    FFormatFileName := v;                                              
-    if Assigned (FControlLink) then                                    
-      FControlLink.Printer.DefaultXMLFileName := v;                    
-  end;                                                                 
-end;                                                                   
+
+procedure TfrmPrnFormat.SetCaptions;
+begin
+  Caption := RSPrintFormatDesigner;
+  LblFormats.Caption := RSFormats;
+  LblElements.Caption := RSElements;
+  lblPrintOrder.Caption := RSPrintOrder;
+  LblPrintPreview.Caption := RSDlgPrintPreview;
+  btnOK.Caption := RSOKBtn;
+  btnNewFormat.Caption := RSNewBtn;
+  btnEditFormat.Caption := RSEditBtn;
+  btnDeleteFormat.Caption := RSDeleteBtn;
+  btnNewElement.Caption := RSNewBtn;
+  btnEditElement.Caption := RSEditBtn;
+  btnDeleteElement.Caption := RSDeleteBtn;
+  btnNewFile.Caption := RSNewFileBtn;
+  btnLoadFile.Caption := RSLoadFileBtn;
+  btnSaveFile.Caption := RSSaveFileBtn;
+end;
+
+procedure TfrmPrnFormat.PositionControls;
+var
+  w: Integer;
+begin
+  btnNewFormat.AutoSize := true;
+  btnEditFormat.AutoSize := true;
+  btnDeleteFormat.AutoSize := true;
+  btnNewElement.AutoSize := true;
+  btnEditElement.AutoSize := true;
+  btnDeleteElement.AutoSize := true;
+
+  w := MaxValue([
+    btnNewFormat.Width, btnEditFormat.Width, btnDeleteFormat.Width,
+    btnNewElement.Width, btnEditElement.Width, btnDeleteElement.Width,
+    LblPrintOrder.Width
+  ]);
+
+  btnNewFormat.AutoSize := false;
+  btnEditFormat.AutoSize := false;
+  btnDeleteFormat.AutoSize := false;
+  btnNewElement.AutoSize := false;
+  btnEditElement.AutoSize := false;
+  btnDeleteElement.AutoSize := false;
+
+  btnNewFormat.Width := w;
+  btnEditFormat.Width := w;
+  btnDeleteFormat.Width := w;
+  btnNewElement.Width := w;
+  btnEditElement.Width := w;
+  btnDeleteElement.Width := w;
+
+  if LblPrintOrder.Top < BottomOf(btnDeleteElement) + 16 then
+    Height := Height + BottomOf(btnDeleteElement) + 16 - LblPrintOrder.Top;
+end;
+
+procedure TfrmPrnFormat.SetDrawingStyle(const v: TVpDrawingStyle);
+begin
+  FDrawingStyle := v;
+  if FDrawingStyle = dsNoBorder then
+    PrintPreview.BorderStyle := bsNone else
+    PrintPreview.BorderStyle := bsSingle;
+  PrintPreview.DrawingStyle := FDrawingStyle;
+end;
+
+procedure TfrmPrnFormat.SetFormatFileName(const v: string);
+begin
+  if v <> FFormatFileName then begin
+    FFormatFileName := v;
+    if Assigned(FControlLink) then
+      FControlLink.Printer.DefaultXMLFileName := v;
+  end;
+end;
 {=====}
 procedure TfrmPrnFormat.UpdateCaption;
 begin
@@ -659,30 +732,52 @@ end;
 {=====}
 procedure TfrmPrnFormat.UpdateFormats;
 var
-  i : Integer;
-  Prn : TVpPrinter;
+  i: Integer;
+  Prn: TVpPrinter;
+  w: Integer;
+  cnv: TControlCanvas;
 begin
   Prn := ControlLink.Printer;
   for i := 0 to Pred(Prn.PrintFormats.Count) do
     lbFormats.Items.AddObject(Prn.PrintFormats.Items[i].FormatName, Prn.PrintFormats.Items[i]);
-  EnableMoveButtons;                                                   
+
+  // Show a horizontal scrollbar if list items are too wide
+  w := 0;
+  cnv := TControlCanvas.Create;
+  try
+    cnv.Control := lbFormats;
+    cnv.Font := lbFormats.Font;
+    w := 0;
+    for i:=0 to lbFormats.Items.Count-1 do
+      w := Max(w, cnv.TextWidth(lbFormats.Items[i]));
+    lbFormats.ScrollWidth := w + 8;
+
+    w := 0;
+    for i:=0 to lbElements.Items.Count-1 do
+      w := Max(w, cnv.TextWidth(lbElements.Items[i]));
+    lbElements.ScrollWidth := w + 8;
+  finally
+    cnv.Free;
+  end;
+
+  EnableMoveButtons;
 end;
 {=====}
 procedure TfrmPrnFormat.UpdatePreview;
 var
-  Prn : TVpPrinter;
-  Idx : Integer;                                                         
-       
+  Prn: TVpPrinter;
+  Idx: Integer;
 begin
   Prn := ControlLink.Printer;
-  if lbFormats.ItemIndex > -1 then begin                                 
-    Idx := Prn.Find (lbFormats.Items[lbFormats.ItemIndex]);              
-    if Idx > - 1 then                                                    
-    Prn.CurFormat := Idx;                                                
-    {Prn.CurFormat := lbFormats.ItemIndex;                             }   
-  end;                                                                                                                                                              
+  if lbFormats.ItemIndex > -1 then begin
+    Idx := Prn.Find(lbFormats.Items[lbFormats.ItemIndex]);
+    if Idx > - 1 then
+      Prn.CurFormat := Idx;
+    {Prn.CurFormat := lbFormats.ItemIndex; }
+  end;
   Prn.NotifyLinked;
-  EnableMoveButtons;                                                   
+  EnableMoveButtons;
+  RebuildPreview;
 end;
 {=====}
 

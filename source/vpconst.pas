@@ -29,21 +29,26 @@
 {.$I Vp.INC}
 
 unit VpConst;
+
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
   {-Versioning defines and methods}
 
 interface
 
 uses
   {$IFDEF LCL}
-  Controls,LCLType,LCLProc,
+  Controls, LCLType, LCLProc, LCLVersion,
   {$ELSE}
   Windows,
   {$ENDIF}
   Forms, StdCtrls;
 
 const
-  BuildTime = '09/13/2002 09:25 AM';
-  VpVersionStr = 'v1.03';    {Visual PlanIt library version}
+  BuildTime = {$I %DATE%} + {$I %TIME}; //'09/13/2002 09:25 AM';
+  VpVersionStr = 'v1.08';    {Visual PlanIt library version}
   VpProductName = 'Visual PlanIt';
 
   BorderStyles    : array[TBorderStyle] of LongInt =
@@ -57,6 +62,9 @@ const
   HoursInDay       = 24;      { Number of hours in a day                 }
   MinutesInHour    = 60;      { Number of minutes in an hour             }
   MinutesInDay     = 1440;    { Number of minutes in a day               }
+  OneSecond        = 1.0 / SecondsInDay;
+  OneMinute        = 1.0 / MinutesInDay;
+  OneHour          = 1.0 / HoursInDay;
   MaxDateLen       = 40;      { maximum length of date picture strings   }
   MaxMonthName     = 15;      { maximum length for month names           }
   MaxDayName       = 15;      { maximum length for day names             }
@@ -72,12 +80,25 @@ const
   calDefWidth      = 200;     { popup calendar default width             }
   ExtraBarWidth    = 2;       { The extra, draggable area on either side }
                               { of the Contact Grid's horizontal bars.   }
+  CompareTimeEPS   = 1.0 / (24*60*60*10); { Epsilon for time comparison, 0.1 sec }
+
+  cmPerInch        = 2.54;    { 1 inch is 2.54 cm                        }
 
   ResourceTableName = 'Resources';
   TasksTableName    = 'Tasks';
   EventsTableName   = 'Events';
   ContactsTableName = 'Contacts';
   RecordIDTableName = 'RecordIDS';
+
+  TallShortChars    = 'Wy';
+  strTRUE           = 'true';
+  strFALSE          = 'false';
+
+  WEEKDAY_COLOR     = $FFFFFF;
+  WEEKEND_COLOR     = $C0C0C0;
+  HOLIDAY_COLOR     = $8080FF;
+  TODAY_COLOR       = $FFC0C0;
+  OFF_COLOR         = $E0E0E0;
 
   {virtual key constants not already defined}
   VK_NONE = 0;
@@ -91,6 +112,7 @@ const
   VK_Y = Ord('Y');  VK_Z = Ord('Z');  VK_0 = Ord('0');  VK_1 = Ord('1');
   VK_2 = Ord('2');  VK_3 = Ord('3');  VK_4 = Ord('4');  VK_5 = Ord('5');
   VK_6 = Ord('6');  VK_7 = Ord('7');  VK_8 = Ord('8');  VK_9 = Ord('9');
+
 
 {------------------- Windows messages -----------------------}
   {Not a message code. Value of the first of the message codes used}
@@ -240,15 +262,31 @@ const
   VpXSLImplementation = 0.0;
   VpXMLSpecification = '1.0';
 
-{ Defaults }                                                             
+  { Defaults }
 
-  { MonthView }                                                          
+  { MonthView }
+  vpDefWVRClickChangeDate = True;
 
-  vpDefWVRClickChangeDate = True;                                        
+  { Hint support }
+  MAX_HINT_WIDTH = 400;
+
+{$IFDEF LCL}
+ {$IF LCL_FULLVERSION >= 1080100}
+  VP_LCL_SCALING = 2;
+ {$ELSE}
+ {$IF LCL_FULLVERSION >= 1080000}
+  VP_LCL_SCALING = 1;
+ {$ELSE}
+  VP_LCL_SCALING = 0;
+ {$ENDIF}{$ENDIF}
+{$ELSE}
+  VL_LCL_SCALING := 0;
+{$ENDIF}
+
 
 implementation
 
-initialization                                                           
+initialization
 {$IFNDEF LCL}
   ClickDelay :=  GetDoubleClickTime;                                     
 {$ENDIF}

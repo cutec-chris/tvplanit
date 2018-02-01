@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpEdElem;
 
@@ -34,29 +34,40 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,
+  LCLProc, LCLType, LCLIntf,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls,
-  VpBase, VpSR, VpPrtFmt, ComCtrls;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, ExtCtrls, ComCtrls,
+  VpBase, VpSR, VpPrtFmt;
 
 type
+
+  { TfrmEditElement }
+
   TfrmEditElement = class(TForm)
+    BevelHeightWidth: TBevel;
+    BevelTopLeft: TBevel;
     btnCancel: TButton;
     btnOk: TButton;
     btnShape: TButton;
     edName: TEdit;
-    Label1: TLabel;
-    Label2: TLabel;
-    rgDayOffset: TRadioGroup;
+    gbDayOffset: TGroupBox;
+    lblName: TLabel;
+    Panel1: TPanel;
+    Panel2: TPanel;
+    ButtonPanel: TPanel;
+    ItemTypePanel: TPanel;
+    HeightWidthPanel: TPanel;
+    TopLeftPanel: TPanel;
+    rgDayOffsetUnit: TRadioGroup;
     rgItemType: TRadioGroup;
     gbVisual: TGroupBox;
-    Label3: TLabel;
-    Label4: TLabel;
-    Label5: TLabel;
-    Label6: TLabel;
+    LblTop: TLabel;
+    LblLeft: TLabel;
+    LblHeight: TLabel;
+    LblWidth: TLabel;
     rgMeasurement: TRadioGroup;
     rgRotation: TRadioGroup;
     edTop: TEdit;
@@ -68,7 +79,7 @@ type
     btnCaptionFont: TButton;
     FontDialog1: TFontDialog;
     edCaptionText: TEdit;
-    lbCaptionText: TLabel;
+    lblCaptionText: TLabel;
     edOffset: TEdit;
     udOffset: TUpDown;
     udTop: TUpDown;
@@ -88,13 +99,15 @@ type
     procedure PosEditEnter(Sender: TObject);
     procedure UpDownClick(Sender: TObject; Button: TUDBtnType);
   private
+    procedure PositionControls;
+    procedure SetCaptions;
     procedure SetMaxSpin(Spin: Integer);
   protected
-    TheShape : TVpPrintShape;
-    TheCaption : TVpPrintCaption;
-    CurEdit : TEdit;
+    TheShape: TVpPrintShape;
+    TheCaption: TVpPrintCaption;
+    CurEdit: TEdit;
 
-    MaxSpin : Integer;
+    MaxSpin: Integer;
     procedure SaveData(AnElement: TVpPrintFormatElementItem);
     procedure SetData(AnElement: TVpPrintFormatElementItem);
     procedure SetItemType(Index: Integer);
@@ -108,10 +121,13 @@ type
 
 implementation
 
-uses VpEdShape;
+uses
+  VpMisc, VpEdShape;
 
-{$IFNDEF LCL}
-{$R *.DFM}
+{$IFDEF LCL}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
 {$ENDIF}
 
 function EvalFmt(Val : Extended) : string;
@@ -120,17 +136,30 @@ begin
 end;
 {=====}
 procedure TfrmEditElement.FormCreate(Sender: TObject);
+var
+  i: Integer;
 begin
   btnShape.Enabled := False;
 
   gbCaption.Enabled := False;
   edCaptionText.Enabled := False;
-  lbCaptionText.Enabled := False;
+  lblCaptionText.Enabled := False;
   btnCaptionFont.Enabled := False;
+
+  for i:=0 to rgDayOffsetUnit.ComponentCount-1 do
+    TRadioButton(rgDayOffsetUnit.Components[i]).ParentFont := false;
+  rgDayOffsetUnit.Font.Style := [fsBold];
+
+  for i:=0 to rgItemType.ComponentCount-1 do
+    TRadioButton(rgItemType.Components[i]).ParentFont := false;
+  rgItemType.Font.Style := [fsBold];
+
+  SetCaptions;
 end;
 {=====}
 procedure TfrmEditElement.FormShow(Sender: TObject);
 begin
+  PositionControls;
   edName.SetFocus;
 end;
 {=====}
@@ -228,13 +257,70 @@ begin
 
   AnElement.ItemType       :=  TVpItemType(rgItemType.ItemIndex);
 
-  AnElement.DayOffsetUnits :=  TVpDayUnits(rgDayOffset.ItemIndex);
+  AnElement.DayOffsetUnits :=  TVpDayUnits(rgDayOffsetUnit.ItemIndex);
   AnElement.Rotation       :=  TVpRotationAngle(rgRotation.ItemIndex);
   AnElement.Measurement    :=  TVpItemMeasurement(rgMeasurement.ItemIndex);
 
   AnElement.Visible := chkVisible.Checked;
 end;
-{=====}
+
+procedure TfrmEditElement.SetCaptions;
+begin
+  Caption := RSEditElementCaption;
+
+  lblName.Caption := RSNameLbl;
+
+  rgItemType.Caption := RSElementTypeLbl;
+  rgItemType.Items[0] := RSDayViewElement;
+  rgItemType.Items[1] := RSWeekViewElement;
+  rgItemType.Items[2] := RSMonthViewElement;
+  rgItemType.Items[3] := RSCalendarElement;
+  rgItemType.Items[4] := RSShapeElement;
+  rgItemType.Items[5] := RSCaptionElement;
+  rgItemType.Items[6] := RSTasksElement;
+  rgItemType.Items[7] := RSContactsElement;
+
+  gbDayOffset.Caption := RSTimeIncLbl;
+  rgDayOffsetUnit.Caption := RSTimeIncUnits;
+  rgDayOffsetUnit.Items[0] := RSDays;
+  rgDayOffsetUnit.Items[1] := RSWeeks;
+  rgDayOffsetUnit.Items[2] := RSMonths;
+  rgDayOffsetUnit.Items[3] := RSYears;
+
+  gbVisual.Caption := RSVisualCaption;
+  rgRotation.Caption := RSRotationCaption;
+  rgMeasurement.Caption := RSMeasurementCaption;
+  rgMeasurement.Items[0] := RSPixels;
+  rgMeasurement.Items[1] := RSPercent;
+  rgMeasurement.Items[2] := RSInches;
+  lblLeft.Caption := RSLeft;
+  lblTop.Caption := RSTop;
+  lblWidth.Caption := RSWidth;
+  lblHeight.Caption := RSHeight;
+  chkVisible.Caption := RSVisible;
+
+  gbCaption.Caption := RSCaption;
+  lblCaptionText.Caption := RSTextCaption;
+  btnCaptionFont.Caption := RSFontBtn;
+  btnShape.Caption := RSShapeBtn;
+  btnOK.Caption := RSOKBtn;
+  btnCancel.Caption := RSCancelBtn;
+end;
+
+procedure TfrmEditElement.PositionControls;
+begin
+  AlignOKCancel(btnOK, btnCancel, ButtonPanel);
+
+  udOffset.Width := udOffset.Height div 2 + 1;
+  udTop.Width := udTop.Height div 2 + 1;
+  udLeft.Width := udLeft.Height div 2 + 1;
+  udHeight.Width := udHeight.Height div 2 + 1;
+  udWidth.Width := udWidth.Height div 2 + 1;
+
+  BevelTopLeft.Shape := bsSpacer;
+  BevelHeightWidth.Shape := bsSpacer;
+end;
+
 procedure TfrmEditElement.SetData(AnElement : TVpPrintFormatElementItem);
 begin
   edName.Text := AnElement.ElementName;
@@ -245,7 +331,7 @@ begin
   TheShape := AnElement.Shape;
   TheCaption := AnElement.Caption;
 
-  rgDayOffset.ItemIndex := Ord(AnElement.DayOffsetUnits);
+  rgDayOffsetUnit.ItemIndex := Ord(AnElement.DayOffsetUnits);
   rgRotation.ItemIndex := Ord(AnElement.Rotation);
   rgMeasurement.ItemIndex := Ord(AnElement.Measurement);
   SetMaxSpin(rgMeasurement.ItemIndex);
@@ -270,7 +356,7 @@ begin
   rgItemType.ItemIndex := Index;
   gbCaption.Enabled := False;
   edCaptionText.Enabled := False;
-  lbCaptionText.Enabled := False;
+  lblCaptionText.Enabled := False;
   btnCaptionFont.Enabled := False;
 
 
@@ -278,7 +364,7 @@ begin
   if Index = 5 then begin
     gbCaption.Enabled := True;
     edCaptionText.Enabled := True;
-    lbCaptionText.Enabled := True;
+    lblCaptionText.Enabled := True;
     btnCaptionFont.Enabled := True;
   end;
 end;

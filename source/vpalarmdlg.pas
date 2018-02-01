@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpAlarmDlg;
   { Alarm Notification Dialog }
@@ -35,13 +35,12 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,LResources,
+  LCLProc, LCLType, LCLIntf, LResources,
   {$ELSE}
-  Windows,Messages,
+  Windows, Messages,
   {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  VpDlg, VpData, ExtCtrls, StdCtrls, VpBase, VpEvntEditDlg, VpBaseDS, VpConst,
-  VpMisc;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
+  VpDlg, VpData, VpEvntEditDlg, VpBaseDS, VpConst;
 
 type
   { forward declarations }
@@ -50,6 +49,7 @@ type
   { TAlarmNotifyForm }
 
   TAlarmNotifyForm = class(TForm)
+    Bevel1: TBevel;
     DismissBtn: TButton;
     EventDialog: TVpEventEditDialog;
     lTime: TLabel;
@@ -59,18 +59,19 @@ type
     SnoozeBtn: TButton;
     SnoozeCaption: TLabel;
     SnoozeCombo: TComboBox;
+    procedure FormCreate(Sender: TObject);
     procedure SnoozeComboChange(Sender: TObject);
     procedure SnoozeBtnClick(Sender: TObject);
     procedure DismissBtnClick(Sender: TObject);
     procedure OpenItemBtnClick(Sender: TObject);
-    procedure FormKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormShow(Sender: TObject);
   private
     SnoozeDelay: TDateTime;
-    ShowTime   : TDateTime;
-
+    ShowTime: TDateTime;
     procedure CalcSnooze;
+  protected
+    procedure PositionControls;
   public
     Event: TVpEvent;
     DataStore: TVpCustomDataStore;
@@ -95,11 +96,15 @@ type
 
 implementation
 
-{$IFNDEF LCL}
-{$R *.DFM}
+{$IFDEF LCL}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
 {$ENDIF}
 
-uses VpSR;
+uses
+  StrUtils, Math,
+  VpMisc, VpSR;
 
 { TVpNotificationDialog }
 
@@ -143,47 +148,51 @@ end;
 { TAlarmNotifyForm }
 
 procedure TAlarmNotifyForm.PopulateSelf;
+var
+  fmt: String;
 begin
   if Event <> nil then begin
-    Caption := RSReminder;
 //    SubjectCaption.Caption := RSSubjectCaption;
 //    NotesCaption.Caption := RSNotesCaption;
     SnoozeCaption.Caption := RSSnoozeCaption;
     DismissBtn.Caption := RSDismissBtn;
     SnoozeBtn.Caption := RSSnoozeBtn;
     OpenItemBtn.Caption := RSOpenItemBtn;
-    lNotes.Caption := Event.Note;
+    lNotes.Caption := Event.Notes;
     lSubject.Caption := Event.Description;
-    lTime.caption := dateTimeToStr(Event.StartTime)+' - '+dateTimeToStr(Event.EndTime);
 
-    if Now > Event.StartTime then
-      Self.Caption := RSOverdue + ' : '
-    else
-      Self.Caption := RSReminder + ' : ';
+    fmt := IfThen(trunc(Event.StartTime) = Date(), 't', 'ddddd t');
+    lTime.Caption := Format('%s - %s', [
+      FormatDateTime(fmt, Event.StartTime),
+      FormatDateTime(fmt, Event.EndTime)] );
+    if Event.Location <> '' then
+      lTime.Caption := lTime.Caption + ' (' + Event.Location + ')';
 
-    Self.Caption := Self.Caption + FormatDateTime(ShortDateFormat + ' '
-      + ShortTimeFormat, Event.StartTime);
+    Caption := Format('%s : %s', [
+      IfThen(Now > Event.StartTime, RSOverdue, RSReminder),
+      FormatDateTime(fmt, Event.StartTime) ]);
 
     SnoozeCombo.Items.Clear;
-    SnoozeCombo.Items.Add(RS5Minutes);
-    SnoozeCombo.Items.Add(RS10Minutes);
-    SnoozeCombo.Items.Add(RS15Minutes);
-    SnoozeCombo.Items.Add(RS30Minutes);
-    SnoozeCombo.Items.Add(RS45Minutes);
+    SnoozeCombo.Items.Add(RS1Minute);
+    SnoozeCombo.Items.Add(Format(RSXMinutes, [5]));
+    SnoozeCombo.Items.Add(Format(RSXMinutes, [10]));
+    SnoozeCombo.Items.Add(Format(RSXMinutes, [15]));
+    SnoozeCombo.Items.Add(Format(RSXMinutes, [30]));
+    SnoozeCombo.Items.Add(Format(RSXMinutes, [45]));
     SnoozeCombo.Items.Add(RS1Hour);
-    SnoozeCombo.Items.Add(RS2Hours);
-    SnoozeCombo.Items.Add(RS3Hours);
-    SnoozeCombo.Items.Add(RS4Hours);
-    SnoozeCombo.Items.Add(RS5Hours);
-    SnoozeCombo.Items.Add(RS6Hours);
-    SnoozeCombo.Items.Add(RS7Hours);
-    SnoozeCombo.Items.Add(RS8Hours);
-    SnoozeCombo.Items.Add(RS1Days);
-    SnoozeCombo.Items.Add(RS2Days);
-    SnoozeCombo.Items.Add(RS3Days);
-    SnoozeCombo.Items.Add(RS4Days);
-    SnoozeCombo.Items.Add(RS5Days);
-    SnoozeCombo.Items.Add(RS6Days);
+    SnoozeCombo.Items.Add(Format(RSXHours, [2]));
+    SnoozeCombo.Items.Add(Format(RSXHours, [3]));
+    SnoozeCombo.Items.Add(Format(RSXHours, [4]));
+    SnoozeCombo.Items.Add(Format(RSXHours, [5]));
+    SnoozeCombo.Items.Add(Format(RSXHours, [6]));
+    SnoozeCombo.Items.Add(Format(RSXHours, [7]));
+    SnoozeCombo.Items.Add(Format(RSXHours, [8]));
+    SnoozeCombo.Items.Add(RS1Day);
+    SnoozeCombo.Items.Add(Format(RSXDays, [2]));
+    SnoozeCombo.Items.Add(Format(RSXDays, [3]));
+    SnoozeCombo.Items.Add(Format(RSXDays, [4]));
+    SnoozeCombo.Items.Add(Format(RSXDays, [5]));
+    SnoozeCombo.Items.Add(Format(RSXDays, [6]));
     SnoozeCombo.Items.Add(RS1Week);
     SnoozeCombo.ItemIndex := 0;
     SnoozeDelay := 5 / MinutesInDay;
@@ -196,26 +205,27 @@ end;
 procedure TAlarmNotifyForm.SnoozeComboChange(Sender: TObject);
 begin
   case SnoozeCombo.ItemIndex of
-    0 : SnoozeDelay :=  5  / MinutesInDay; { 5 minutes }
-    1 : SnoozeDelay := 10  / MinutesInDay; {10 Minutes }
-    2 : SnoozeDelay := 15  / MinutesInDay; {15 Minutes }
-    3 : SnoozeDelay := 30  / MinutesInDay; {30 Minutes }
-    4 : SnoozeDelay := 45  / MinutesInDay; {45 Minutes }
-    5 : SnoozeDelay := 60  / MinutesInDay; {1 Hour     }
-    6 : SnoozeDelay := 120 / MinutesInDay; {2 Hours    }
-    7 : SnoozeDelay := 180 / MinutesInDay; {3 Hours    }
-    8 : SnoozeDelay := 240 / MinutesInDay; {4 Hours    }
-    9 : SnoozeDelay := 300 / MinutesInDay; {5 Hours    }
-    10: SnoozeDelay := 360 / MinutesInDay; {6 Hours    }
-    11: SnoozeDelay := 420 / MinutesInDay; {7 Hours    }
-    12: SnoozeDelay := 480 / MinutesInDay; {8 Hours    }
-    13: SnoozeDelay := 1.0;                {1 day      }
-    14: SnoozeDelay := 2.0;                {2 day      }
-    15: SnoozeDelay := 3.0;                {3 day      }
-    16: SnoozeDelay := 4.0;                {4 day      }
-    17: SnoozeDelay := 5.0;                {5 day      }
-    18: SnoozeDelay := 6.0;                {6 day      }
-    19: SnoozeDelay := 7.0;                {1 week     }
+    0 : SnoozeDelay :=   1 / MinutesInDay; { 1 minute  }
+    1 : SnoozeDelay :=   5 / MinutesInDay; { 5 minutes }
+    2 : SnoozeDelay :=  10 / MinutesInDay; {10 Minutes }
+    3 : SnoozeDelay :=  15 / MinutesInDay; {15 Minutes }
+    4 : SnoozeDelay :=  30 / MinutesInDay; {30 Minutes }
+    5 : SnoozeDelay :=  45 / MinutesInDay; {45 Minutes }
+    6 : SnoozeDelay :=  60 / MinutesInDay; {1 Hour     }
+    7 : SnoozeDelay := 120 / MinutesInDay; {2 Hours    }
+    8 : SnoozeDelay := 180 / MinutesInDay; {3 Hours    }
+    9 : SnoozeDelay := 240 / MinutesInDay; {4 Hours    }
+    10: SnoozeDelay := 300 / MinutesInDay; {5 Hours    }
+    11: SnoozeDelay := 360 / MinutesInDay; {6 Hours    }
+    12: SnoozeDelay := 420 / MinutesInDay; {7 Hours    }
+    13: SnoozeDelay := 480 / MinutesInDay; {8 Hours    }
+    14: SnoozeDelay := 1.0;                {1 day      }
+    15: SnoozeDelay := 2.0;                {2 day      }
+    16: SnoozeDelay := 3.0;                {3 day      }
+    17: SnoozeDelay := 4.0;                {4 day      }
+    18: SnoozeDelay := 5.0;                {5 day      }
+    19: SnoozeDelay := 6.0;                {6 day      }
+    20: SnoozeDelay := 7.0;                {1 week     }
   end;
 end;
 {=====}
@@ -228,6 +238,8 @@ end;
 {=====}
 
 procedure TAlarmNotifyForm.DismissBtnClick(Sender: TObject);
+var
+  t0: TTime;
 begin
   if Event.RepeatCode = rtNone then
     begin
@@ -236,9 +248,12 @@ begin
   else
     begin
       SnoozeDelay := 0;
+      t0 := Trunc(Now) + frac(Event.StartTime) - EncodeTime(0, Event.AlarmAdvance, 0, 0);
       case Event.RepeatCode of
-      rtDaily:Event.SnoozeTime := Trunc(Now)+1+(Frac(Event.StartTime)-EncodeTime(0,Event.AlarmAdv,0,0));
-      rtWeekly:Event.SnoozeTime := Trunc(Now)+7+(Frac(Event.StartTime)-EncodeTime(0,Event.AlarmAdv,0,0));
+      rtDaily:
+        Event.SnoozeTime := t0 + 1; //Trunc(Now)+1+(Frac(Event.StartTime)-EncodeTime(0,Event.AlarmAdvance,0,0));
+      rtWeekly:
+        Event.SnoozeTime := t0 + 7; //Trunc(Now)+7+(Frac(Event.StartTime)-EncodeTime(0,Event.AlarmAdvance,0,0));
 //TODO:      rtMonthlyByDay:
 //TODO:      rtMonthlyByDate:
 //TODO:      rtYearlyByDay:
@@ -250,6 +265,12 @@ begin
     end;
   Close;
 end;
+
+procedure TAlarmNotifyForm.FormCreate(Sender: TObject);
+begin
+//  SnoozeCombo.Top := SnoozeBtn.Top + (SnoozeBtn.Height - SnoozeCombo.Height) div 2;
+end;
+
 {=====}
 
 procedure TAlarmNotifyForm.OpenItemBtnClick(Sender: TObject);
@@ -264,6 +285,7 @@ end;
 procedure TAlarmNotifyForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
+  Unused(Shift);
   if Key = VK_ESCAPE then begin
     CalcSnooze;
     Close;
@@ -276,17 +298,58 @@ begin
   Event.SnoozeTime := Now + SnoozeDelay;
 end;
 {=====}
+
 procedure TAlarmNotifyForm.FormShow(Sender: TObject);
 begin
-  Self.Width := 410;
-  Self.Height := 210;
-  OpenItemBtn.SetFocus;
+  PositionControls;
 end;
 
-initialization
-{$IFDEF LCL}
-  {$I vpalarmdlg.lrs}
-{$ENDIF}
+procedure TAlarmNotifyForm.PositionControls;
+var
+  w, h: Integer;
+  i: Integer;
+  cnv: TControlCanvas;
+begin
+  cnv := TControlCanvas.Create;
+  try
+    cnv.Control := SnoozeCombo;
+    cnv.Font.Assign(SnoozeCombo.Font);
+    w := 0;
+    for i:=0 to SnoozeCombo.Items.Count-1 do
+      w := Max(w, cnv.TextWidth(SnoozeCombo.Items[i]));
+    w := w + GetSystemMetrics(SM_CXVSCROLL);
+  finally
+    cnv.Free;
+  end;
+
+  SnoozeBtn.AutoSize := true;
+  h := SnoozeBtn.Height;
+  if SnoozeBtn.Width > w then
+    w := SnoozeBtn.Width;
+  SnoozeBtn.AutoSize := false;
+
+  OpenItemBtn.AutoSize := true;
+  if OpenItemBtn.Width > w then
+    w := OpenItemBtn.Width;
+  OpenItemBtn.AutoSize := false;
+
+  DismissBtn.AutoSize := true;
+  if DismissBtn.Width > w then
+    w := DismissBtn.Width;
+  DismissBtn.AutoSize := false;
+
+  SnoozeBtn.Width := w;
+  SnoozeBtn.Height := h;
+  DismissBtn.Width := w;
+  DismissBtn.Height := h;
+  OpenItemBtn.Width := w;
+  OpenItemBtn.Height := h;
+  SnoozeCombo.Width := w;
+
+  AutoSize := true;
+
+  OpenItemBtn.SetFocus;
+end;
 
 end.
  

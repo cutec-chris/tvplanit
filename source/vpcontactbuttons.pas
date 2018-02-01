@@ -31,7 +31,7 @@
 { providing this component, and allowing us to include it.     }
 { Thanks Steve!                                                }
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpContactButtons;
 
@@ -39,18 +39,18 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,
+  LCLProc, LCLType, LCLIntf,
   {$ELSE}
   Windows,
   {$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   VpBase, VpContactGrid, VpMisc;
 
 const
-        VP_MIN_BUTTONS = 2;
+  VP_MIN_BUTTONS = 2;
   VP_LETTERS_IN_ALPHABET = 26;
   VP_MAX_BUTTONS = VP_LETTERS_IN_ALPHABET + 1;
-        VP_LETTER_A = Ord('a');
+  VP_LETTER_A = Ord('a');
 
 type
   TVpButtonRec = packed record
@@ -137,6 +137,9 @@ type
     property Align;
     property Anchors;
     property BiDiMode;
+    {$IFDEF LCL}
+    property BorderSpacing;
+    {$ENDIF}
     property Color;
     property Constraints;
     property Cursor;
@@ -176,6 +179,7 @@ type
   end;
 
 implementation
+
 { TVpContactButtonBar }
 
 constructor TVpContactButtonBar.Create(AOwner: TComponent);
@@ -214,43 +218,46 @@ var
   ButtonCaption: String;
   Offset: Integer;
   MaxButtons: Integer;
-        MinButtons: Integer;
+  MinButtons: Integer;
+  btnHeight: Integer;
+  btnWidth: Integer;
+  brdrWidth: Integer;
 begin
   I := 0;
 
   if FShowNumberButton then begin
     MaxButtons := VP_MAX_BUTTONS;
-                MinButtons := VP_MIN_BUTTONS + 1;
-        end else begin
+    MinButtons := VP_MIN_BUTTONS + 1;
+  end else begin
     MaxButtons := VP_LETTERS_IN_ALPHABET;
-                MinButtons := VP_MIN_BUTTONS;
-        end;
+    MinButtons := VP_MIN_BUTTONS;
+  end;
+
+  btnHeight := ScaleY(FButtonHeight, DesignTimeDPI);
+  btnWidth := ScaleX(FButtonWidth, DesignTimeDPI);
+  brdrWidth := ScaleX(FBorderWidth, DesignTimeDPI);
 
   if FBarOrientation = baVertical then begin
     TotalXY := FBorderWidth;
 
-    while ((TotalXY + FButtonHeight + FBorderWidth < ClientHeight)
-           and (I < MaxButtons))
-    or (I < MinButtons)
+    while ((TotalXY + btnHeight + brdrWidth < ClientHeight) and (I < MaxButtons))
+      or (I < MinButtons)
     do begin
-      FButtonsArray[I].Rect := Rect(FBorderWidth, TotalXY,
-        ClientWidth - FBorderWidth, TotalXY + FButtonHeight);
+      FButtonsArray[I].Rect := Rect(brdrWidth, TotalXY, ClientWidth - brdrWidth, TotalXY + btnHeight);
       Inc(I);
-      TotalXY := TotalXY + FButtonHeight + FBorderWidth;
+      TotalXY := TotalXY + btnHeight + brdrWidth;
     end;
 
     FButtonCount := I;
   end else begin
-    TotalXY := FBorderWidth;
+    TotalXY := brdrWidth;
 
-    while ((TotalXY + FButtonWidth + FBorderWidth < ClientWidth)
-           and (I < MaxButtons))
-    or (I < MinButtons)
+    while ((TotalXY + btnWidth + brdrWidth < ClientWidth) and (I < MaxButtons))
+      or (I < MinButtons)
     do begin
-      FButtonsArray[i].Rect := Rect(TotalXY, FBorderWidth,
-        TotalXY + FButtonWidth, ClientHeight - FBorderWidth);
+      FButtonsArray[i].Rect := Rect(TotalXY, brdrWidth, TotalXY + btnWidth, ClientHeight - brdrWidth);
       Inc(I);
-      TotalXY := TotalXY + FButtonWidth + FBorderWidth;
+      TotalXY := TotalXY + btnWidth + brdrWidth;
     end;
 
     FButtonCount := I;
@@ -296,36 +303,43 @@ begin
     ButtonRect := FButtonsArray[Index].Rect;
     Brush.Color := FButtonColor;
     FillRect(ButtonRect);
-    if (FDrawingStyle = dsFlat) then begin
-
-      if Pressed then
-        Pen.Color := clBtnShadow
-      else
-        Pen.Color := clBtnHighlight;
-
-      PolyLine([Point(ButtonRect.Right - 1, ButtonRect.Top),
-        Point(ButtonRect.Left, ButtonRect.Top),
-        Point(ButtonRect.Left, ButtonRect.Bottom - 1)]);
-
-      if Pressed then
-        Pen.Color := clBtnHighlight
-      else
-        Pen.Color := clBtnShadow;
-
-      PolyLine([Point(ButtonRect.Left, ButtonRect.Bottom - 1),
-        Point(ButtonRect.Right - 1, ButtonRect.Bottom - 1),
-        Point(ButtonRect.Right - 1, ButtonRect.Top)]);
-
-      InflateRect(ButtonRect, -2, -2);
-    end else begin
-      if Pressed then
-        DrawFrameControl(Handle, ButtonRect,
-          DFC_BUTTON, DFCS_BUTTONPUSH or DFCS_PUSHED)
-      else
-        DrawFrameControl(Handle, ButtonRect, DFC_BUTTON, DFCS_BUTTONPUSH);
-
-      InflateRect(ButtonRect, -2, -2);
-      FillRect(ButtonRect);
+    case FDrawingStyle of
+      dsFlat:
+        begin
+          if Pressed then
+            Pen.Color := clBtnShadow else
+            Pen.Color := clBtnHighlight;
+          PolyLine([
+            Point(ButtonRect.Right - 1, ButtonRect.Top),
+            Point(ButtonRect.Left, ButtonRect.Top),
+            Point(ButtonRect.Left, ButtonRect.Bottom - 1)
+          ]);
+          if Pressed then
+            Pen.Color := clBtnHighlight else
+            Pen.Color := clBtnShadow;
+          PolyLine([
+            Point(ButtonRect.Left, ButtonRect.Bottom - 1),
+            Point(ButtonRect.Right - 1, ButtonRect.Bottom - 1),
+            Point(ButtonRect.Right - 1, ButtonRect.Top)
+          ]);
+          InflateRect(ButtonRect, -2, -2);
+        end;
+      ds3D:
+        begin
+          if Pressed then
+            DrawFrameControl(Handle, ButtonRect, DFC_BUTTON, DFCS_BUTTONPUSH or DFCS_PUSHED)
+          else
+            DrawFrameControl(Handle, ButtonRect, DFC_BUTTON, DFCS_BUTTONPUSH);
+          InflateRect(ButtonRect, -2, -2);
+          FillRect(ButtonRect);
+        end;
+      dsNoBorder:
+        begin
+          if Pressed then begin
+            Pen.Color := clBtnShadow;
+            Rectangle(ButtonRect);
+          end;
+        end;
     end;
 
     if Pressed then begin
@@ -335,8 +349,7 @@ begin
 
     DrawText(Handle, PChar(FButtonsArray[Index].Caption),
       Length(FButtonsArray[Index].Caption), ButtonRect,
-      {DrawTextBiDiModeFlagsReadingOnly or }DT_SINGLELINE or DT_CENTER
-      or DT_VCENTER);
+      {DrawTextBiDiModeFlagsReadingOnly or }DT_SINGLELINE or DT_CENTER or DT_VCENTER);
   end;
 end;
 {=====}

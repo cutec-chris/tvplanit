@@ -36,162 +36,197 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,LResources,
+  LCLProc, LCLType, LCLIntf, LResources, LCLVersion,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  FileCtrl, StdCtrls, ExtCtrls, Buttons, VpBase, ComCtrls;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, ExtCtrls, Buttons, ComCtrls, ShellCtrls,
+  VpBase;
 
 type
+
+  { TFrmSoundDialog }
+
   TFrmSoundDialog = class(TForm)
+    Label3: TLabel;
     PageControl1: TPageControl;
+    Panel1: TPanel;
+    ButtonPanel: TPanel;
+    Panel3: TPanel;
+    Panel4: TPanel;
+    RightPanel: TPanel;
+    Label4: TLabel;
+    ShellListView: TShellListView;
+    ShellTreeView: TShellTreeView;
+    Splitter1: TSplitter;
     TabSheet1: TTabSheet;
     PlayButton: TSpeedButton;
-//    DriveComboBox1: TDriveComboBox;
-//    DirectoryListBox1: TDirectoryListBox;
-    FileListBox1: TFileListBox;
     CBDefault: TCheckBox;
     OkBtn: TButton;
     CancelBtn: TButton;
-    procedure FileListBox1Change(Sender: TObject);
-    procedure PlayButtonClick(Sender: TObject);
+    procedure CancelBtnClick(Sender: TObject);
     procedure CBDefaultClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure OkBtnClick(Sender: TObject);
-    procedure CancelBtnClick(Sender: TObject);
-    procedure FormKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
+    procedure PlayButtonClick(Sender: TObject);
   private
+    FOnPlaySound: TVpPlaySoundEvent;
+    function FindFileItem(AFilename: String): TListItem;
+    procedure PlaySound;
+    procedure StopSound;
   public
     DingPath: string;
-    ReturnCode : TVpEditorReturnCode;
+    MediaFolder: String;
+    function GetSelectedFileName: String;
     procedure Populate;
+    property OnPlaySound: TVpPlaySoundEvent read FOnPlaySound write FOnPlaySound;
   end;
 
-function ExecuteSoundFinder(var DingPath: string): Boolean;
 
 implementation
 
 uses
-{$IFNDEF LCL}
-  mmSystem,
-{$ENDIF}
-  VpSR;
+  VpSR, VpMisc;
 
-{$IFNDEF LCL}
-{$R *.DFM}
+{$IFDEF LCL}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
 {$ENDIF}
 
-function ExecuteSoundFinder(var DingPath: string): Boolean;
+procedure TFrmSoundDialog.CancelBtnClick(Sender: TObject);
+begin
+  StopSound;
+end;
+
+procedure TFrmSoundDialog.CBDefaultClick(Sender: TObject);
+begin
+  ShellTreeview.Visible := not CBDefault.Checked;
+  ShellListview.Visible := not CBDefault.Checked;
+  Panel3.Visible := CBDefault.Checked;
+  Label4.Visible := CBDefault.Checked;
+  PlayButton.Visible := not CBDefault.Checked;
+end;
+{=====}
+
+function TFrmSoundDialog.FindFileItem(AFileName: String): TListItem;
 var
-  SoundFinder: TfrmSoundDialog;
+  i: Integer;
 begin
-  Result := false;
-  Application.CreateForm(TfrmSoundDialog, SoundFinder);
-  try
-    SoundFinder.DingPath := DingPath;
-    SoundFinder.Populate;
-    SoundFinder.ShowModal;
-    if SoundFinder.ReturnCode = rtCommit then begin
-      if SoundFinder.CBDefault.Checked then
-        DingPath := ''
-      else
-        DingPath := SoundFinder.FileListBox1.FileName;
-      Result := true;
+  AFileName := ExtractFileName(AFileName);
+  for i:=0 to ShellListview.Items.Count-1 do
+    if ShellListview.Items[i].Caption = AFilename then begin
+      Result := ShellListview.Items[i];
+      exit;
     end;
-  finally
-    SoundFinder.Release;
-  end;
+  Result := nil;
 end;
-{=====}
 
-procedure TFrmSoundDialog.FileListBox1Change(Sender: TObject);
+procedure TFrmSoundDialog.FormCreate(Sender: TObject);
 begin
-  if FileListBox1.Items.Count > 0 then begin
-    PlayButton.Enabled := true;
-    DingPath := FileListBox1.FileName;
-  end else begin
-   PlayButton.Enabled := false;
-   DingPath := '';
-  end;
+  Panel3.Align := alClient;
+  Panel4.Align := alLeft;
+  ShellTreeView.Align := alClient;
+  Label4.Align := alClient;
+{$IFDEF LCL}
+  {$IF lcl_fullversion >= 1080000}
+  ShellListView.Mask := '*.wav';
+  {$ENDIF}
+{$ENDIF}
 end;
-{=====}
+
+procedure TFrmSoundDialog.FormShow(Sender: TObject);
+begin
+  AlignOKCancel(OkBtn, CancelBtn, ButtonPanel);
+  PlayButton.Width := MulDiv(PlayButton.Height, 3, 2) ;
+  {$IFDEF NEW_ICONS}
+  LoadGlyphFromRCDATA(PlayButton.Glyph, 'VpSpeaker', 16, 24, 32);
+  {$ENDIF}
+end;
+
+function TFrmSoundDialog.GetSelectedFileName: String;
+begin
+  if ShellListview.Selected <> nil then
+    Result := IncludeTrailingPathDelimiter(ShellTreeView.Path) + ShellListview.Selected.Caption
+  else
+    Result := '';
+end;
+
+procedure TFrmSoundDialog.OkBtnClick(Sender: TObject);
+begin
+  StopSound;
+end;
 
 procedure TFrmSoundDialog.PlayButtonClick(Sender: TObject);
 begin
-  PlayButton.Enabled := false;
-{$IFNDEF LCL}
-  SndPlaySound(PChar(FileListBox1.FileName), snd_Sync);
-{$ENDIF}
-  PlayButton.Enabled := true;
+  DingPath := GetSelectedFileName;
+  PlaySound;
 end;
-{=====}
+
+procedure TFrmSoundDialog.PlaySound;
+begin
+  if Assigned(FOnPlaySound) then
+    FOnPlaySound(self, DingPath, psmAsync);
+end;
 
 procedure TFrmSoundDialog.Populate;
-var
-  Drive: char;
 begin
   TabSheet1.Caption := RSSelectASound;
   Self.Caption := RSSoundFinder;
   CBDefault.Caption := RSDefaultSound;
   OkBtn.Caption := RSOkBtn;
   CancelBtn.Caption := RSCancelBtn;
+  Label3.Caption := RSNothingToSelectFrom;
+  Label4.Caption := RSNothingToSelectFrom;
+
+  (*
+  DIST := ScaleX(DIST, DesignTimeDPI);
+  VDist := ScaleY(VDist, DesignTimeDPI);
+  HBORDER := ScaleX(HBORDER, DesignTimeDPI);
+
+  OKBtn.Height := ScaleX(OKBtn.Height, DesignTimeDPI);
+  CancelBtn.Height := OKBtn.Height;
+  ButtonPanel.Height := VDist + OKBtn.Height + VDist;
+  OKBtn.Top := VDist;
+  CancelBtn.Top := VDist;
+  PlayButton.Top := (ButtonPanel.Height - PlayButton.Height) div 2;
+
+  OKBtn.Width := Max(GetButtonWidth(OKBtn), GetButtonWidth(CancelBtn));
+  CancelBtn.Width := OKBtn.Width;
+ {$IFDEF MSWINDOWS}
+  CancelBtn.Left := ButtonPanel.ClientWidth - HBORDER - CancelBtn.Width;
+  OKBtn.Left := CancelBtn.Left - DIST - OKBtn.Width;
+  OKBtn.TabOrder := 0;
+  CancelBtn.TabOrder := 1;
+ {$ELSE}
+  OKBtn.Left := ButtonPanel.ClientWidth - HBORDER - OKBtn.Width;
+  CancelBtn.Left := OKBtn.Left - DIST - CancelBtn.Width;
+  CancelBtn.TabOrder := 0;
+  OKBtn.TabOrder := 1;
+ {$ENDIF}
+ *)
   if DingPath = '' then begin
     CBDefault.Checked := true;
-//    DirectoryListBox1.Directory := ExtractFileDir(ParamStr(0));
+    if (MediaFolder <> '') and DirectoryExists(MediaFolder) then
+      ShellTreeView.Path := MediaFolder;
+  end else
+  if FileExists(DingPath) then begin
+    ShellTreeview.Path := ExtractFileDir(DingPath);
+    ShellListview.Selected := FindFileItem(DingPath);
   end else begin
-    Drive := UpCase(ExtractFileDrive(DingPath)[1]);
-    if FileExists(DingPath) and (Drive in ['A'..'Z']) then begin
-//      DriveComboBox1.Drive := Drive;
-//      DirectoryListBox1.Directory := ExtractFileDir(DingPath);
-      FileListBox1.FileName := DingPath;
-    end else begin
-//      DirectoryListBox1.Directory := ExtractFileDir(ParamStr(0));
-    end;
+    ShellTreeView.Path := MediaFolder;
   end;
+  CBDefaultClick(nil);
 end;
 {=====}
 
-procedure TFrmSoundDialog.CBDefaultClick(Sender: TObject);
+procedure TFrmSoundDialog.StopSound;
 begin
-//  DriveComboBox1.Enabled := not CBDefault.Checked;
-//  DirectoryListBox1.Enabled := not CBDefault.Checked;
-  FileListBox1.Enabled := not CBDefault.Checked;
-  PlayButton.Enabled := not CBDefault.Checked;
+  if Assigned(FOnPlaySound) then
+    FOnPlaySound(self, '', psmStop);
 end;
-{=====}
-
-procedure TFrmSoundDialog.FormCreate(Sender: TObject);
-begin
-  ReturnCode := rtAbandon;
-end;
-{=====}
-
-procedure TFrmSoundDialog.OkBtnClick(Sender: TObject);
-begin
-  ReturnCode := rtCommit;
-  Close;
-end;
-{=====}
-
-procedure TFrmSoundDialog.CancelBtnClick(Sender: TObject);
-begin
-  Close;
-end;
-{=====}
-
-procedure TFrmSoundDialog.FormKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
-  if Key = VK_ESCAPE then
-    Close;
-end;
-
-initialization
-{$IFDEF LCL}
-  {$I vpwavdlg.lrs}
-{$ENDIF}
 
 end.
   

@@ -26,7 +26,7 @@
 {*                                                                            *}
 {* ***** END LICENSE BLOCK *****                                              *}
 
-{$I Vp.INC}
+{$I vp.inc}
 
 unit VpCalendar;
   {-Calendar component}
@@ -35,13 +35,12 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,
+  LMessages, LCLProc, LCLType, LCLIntf, FileUtil,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Buttons, Classes, Controls, Forms, Graphics, Menus, Messages,
-  SysUtils, VpBase, VpSR, VpConst, VpMisc, VpBaseDS, VpCanvasUtils,
-  VpException;
+  SysUtils, Buttons, Classes, Controls, Forms, Graphics, Menus,
+  VpConst, VpBase, VpSR, VpMisc, VpBaseDS, VpCanvasUtils, VpException;
 
 type
   TVpCalDisplayOption = (cdoShortNames, cdoShowYear, cdoShowInactive,
@@ -70,7 +69,7 @@ const
      (clBlack,     clBlack,  clAqua,    clGray,   clBlack,  clNavy, clBlack),
      (clRed,       clRed,    clFuchsia, clGray,   clBlue,   clTeal, clBlack)
     );
-  calDefWeekStarts = dtSunday;{ default start of the week               }
+  calDefWeekStarts = dtSunday;  { default start of the week }
 
 type
   TVpCalColors = class(TPersistent)
@@ -83,18 +82,17 @@ type
     SettingScheme : Boolean;
 
     {property methods}
-    function GetColor(Index : Integer) : TColor;
-    procedure SetColor(Index : Integer; Value : TColor);
-    procedure SetColorScheme(Value : TVpCalColorScheme);
+    function GetColor(Index: Integer): TColor;
+    procedure SetColor(Index: Integer; Value: TColor);
+    procedure SetColorScheme(Value: TVpCalColorScheme);
 
     {internal methods}
     procedure DoOnChange;
 
   public
     {public property variables}
-    FCalColors    : TVpCalColorArray;
-    FColorScheme  : TVpCalColorScheme;
-
+    FCalColors: TVpCalColorArray;
+    FColorScheme: TVpCalColorScheme;
     procedure Assign(Source : TPersistent); override;
     procedure BeginUpdate;
     procedure EndUpdate;
@@ -102,29 +100,21 @@ type
     property OnChange : TNotifyEvent read  FOnChange write FOnChange;
 
   published
-    property ActiveDay : TColor index 0 read  GetColor write SetColor;
-    property ColorScheme : TVpCalColorScheme read  FColorScheme
-      write SetColorScheme;
-    property DayNames : TColor index 1 read  GetColor write SetColor;
-    property Days : TColor index 2 read  GetColor write SetColor;
-    property InactiveDays : TColor index 3 read  GetColor write SetColor;
-    property MonthAndYear : TColor index 4 read  GetColor write SetColor;
-    property Weekend : TColor index 5 read  GetColor write SetColor;
+    property ActiveDay: TColor index 0 read  GetColor write SetColor;
+    property ColorScheme: TVpCalColorScheme read  FColorScheme write SetColorScheme;
+    property DayNames: TColor index 1 read  GetColor write SetColor;
+    property Days: TColor index 2 read  GetColor write SetColor;
+    property InactiveDays: TColor index 3 read  GetColor write SetColor;
+    property MonthAndYear: TColor index 4 read  GetColor write SetColor;
+    property Weekend: TColor index 5 read  GetColor write SetColor;
     property EventDays: TColor index 6 read GetColor write SetColor;
   end;
 
 type
-  TDateChangeEvent =
-    procedure(Sender : TObject; Date : TDateTime) of object;
-  TCalendarDateEvent =
-    procedure(Sender : TObject; ADate : TDateTime;
-              const Rect : TRect) of object;
-  TGetHighlightEvent =
-    procedure(Sender : TObject; ADate : TDateTime;
-              var Color : TColor) of object;
-  TGetDateEnabledEvent =
-    procedure(Sender : TObject; ADate : TDateTime;
-              var Enabled : Boolean) of object;
+  TDateChangeEvent = procedure(Sender: TObject; Date: TDateTime) of object;
+  TCalendarDateEvent = procedure(Sender: TObject; ADate: TDateTime; const Rect: TRect) of object;
+  TGetHighlightEvent = procedure(Sender: TObject; ADate: TDateTime; var Color: TColor) of object;
+  TGetDateEnabledEvent = procedure(Sender: TObject; ADate: TDateTime; var Enabled: Boolean) of object;
 
   TVpCustomCalendar = class(TVpLinkableControl)
   protected {private}
@@ -141,7 +131,7 @@ type
     FMonth           : Integer;               {calendar month}
     FReadOnly        : Boolean;               {true if in read only mode}
     FWantDblClicks   : Boolean;               {true to include cs_dblclks style}
-    FWeekStarts      : TVpDayType;           {the day that begins the week}
+    FWeekStarts      : TVpDayType;            {the day that begins the week}
     FYear            : Integer;               {calendar year}
     FLastRenderX     : Integer;
     FLastRenderY     : Integer;
@@ -177,147 +167,131 @@ type
     clRevertDate     : TDateTime; {date on entry}
     clRowCount       : Integer;   {7 if no header, otherwise 8}
     clStartRow       : Integer;   {first row number}
+    calMargin        : Integer;
 
     {property methods}
-    function GetDay : Integer;
-    function GetMonth : Integer;
-    function GetYear : Integer;
-    procedure SetBorderStyle(Value : TBorderStyle);
-    procedure SetDate(Value : TDateTime);
-    procedure SetDateFormat(Value : TVpDateFormat);
-    procedure SetDayNameWidth(Value : TVpDayNameWidth);
-    procedure SetDisplayOptions(Value : TVpCalDisplayOptions);
-    procedure SetDrawHeader(Value : Boolean);
-    procedure SetWantDblClicks(Value : Boolean);
-    procedure SetWeekStarts(Value : TVpDayType);
+    function GetDay: Integer;
+    function GetMonth: Integer;
+    function GetYear: Integer;
+    procedure SetBorderStyle(Value: TBorderStyle);
+    procedure SetDate(Value: TDateTime);
+    procedure SetDateFormat(Value: TVpDateFormat);
+    procedure SetDayNameWidth(Value: TVpDayNameWidth);
+    procedure SetDisplayOptions(Value: TVpCalDisplayOptions);
+    procedure SetDrawHeader(Value: Boolean);
+    procedure SetWantDblClicks(Value: Boolean);
+    procedure SetWeekStarts(Value: TVpDayType);
 
     {internal methods}
-    procedure PopupToday (Sender : TObject);
-    procedure PopupNextMonth (Sender : TObject);
-    procedure PopupPrevMonth(Sender : TObject);
-    procedure PopupNextYear (Sender : TObject);
-    procedure PopupPrevYear (Sender : TObject);
+    procedure PopupToday(Sender: TObject);
+    procedure PopupNextMonth(Sender: TObject);
+    procedure PopupPrevMonth(Sender: TObject);
+    procedure PopupNextYear(Sender: TObject);
+    procedure PopupPrevYear(Sender: TObject);
     procedure InitializeDefaultPopup;
-    procedure calChangeMonth(Sender : TObject);
-    procedure calColorChange(Sender : TObject);
-    function calGetCurrentRectangle : TRect;
+    procedure calChangeMonth(Sender: TObject);
+    procedure calColorChange(Sender: TObject);
+    function calGetCurrentRectangle: TRect;
       {-get bounding rectangle for the current calendar day}
-    function calGetValidDate(ADate : TDateTime; Delta : Integer) : TDateTime;
-    procedure calRebuildCalArray (ADate : TDateTime);
+    function calGetValidDate(ADate: TDateTime; Delta: Integer): TDateTime;
+    procedure calRebuildCalArray(ADate: TDateTime);
       {-recalculate the contents of the calendar array}
-    procedure CalculateSizes (WorkCanvas  : TCanvas;
-                              Angle       : TVpRotationAngle;
-                              Rect        : TRect;
-                              var Row     : TRowArray;
-                              var Col     : TColArray;
-                              DisplayOnly : Boolean);
-    procedure calRecalcSize (DisplayOnly : Boolean);
+    procedure CalculateSizes(WorkCanvas: TCanvas; Angle: TVpRotationAngle;
+      Rect: TRect; out Row: TRowArray; out Col: TColArray; DisplayOnly: Boolean);
+    procedure calRecalcSize (DisplayOnly: Boolean);
       {-calcualte new sizes for rows and columns}
 
     {VCL control methods}
-    procedure CMEnter(var Msg : TMessage); message CM_ENTER;
-    procedure CMExit(var Msg : TMessage); message CM_EXIT;
-    procedure CMFontChanged(var Msg : TMessage); message CM_FONTCHANGED;
+    procedure CMEnter(var Msg: {$IFDEF DELPHI}TMessage{$ELSE}TLMessage{$ENDIF}); message CM_ENTER;
+    procedure CMExit(var Msg: {$IFDEF DELPHI}TMessage{$ELSE}TLMessage{$ENDIF}); message CM_EXIT;
+    procedure CMFontChanged(var Msg: {$IFDEF DELPHI}TMessage{$ELSE}TLMessage{$ENDIF}); message CM_FONTCHANGED;
 
     {windows message methods}
-    procedure WMEraseBkgnd(var Msg : TWMEraseBkgnd); message WM_ERASEBKGND;
-    procedure WMGetDlgCode(var Msg : TWMGetDlgCode); message WM_GETDLGCODE;
-    procedure WMKillFocus(var Msg : TWMKillFocus); message WM_KILLFOCUS;
+    {$IFDEF DELPHI}
+    procedure WMEraseBkgnd(var Msg: TWMEraseBkgnd); message WM_ERASEBKGND;
+    procedure WMGetDlgCode(var Msg: TWMGetDlgCode); message WM_GETDLGCODE;
+    procedure WMKillFocus(var Msg: TWMKillFocus); message WM_KILLFOCUS;
+    {$ELSE}
+    procedure WMEraseBkgnd(var Msg: TLMEraseBkgnd); message LM_ERASEBKGND;
+//    procedure WMGetDlgCode(var Msg: TLMGetDlgCode); message LM_GETDLGCODE;
+    procedure WMKillFocus(var Msg: TLMKillFocus); message LM_KILLFOCUS;
+    {$ENDIF}
 
-    procedure calBtnClick(Sender : TObject);
-    procedure CreateParams(var Params : TCreateParams); override;
+    procedure calBtnClick(Sender: TObject);
+    procedure CreateParams(var Params: TCreateParams); override;
     procedure CreateWnd; override;
-    procedure DoOnChange(Value : TDateTime); dynamic;
-    function DoOnGetDateEnabled(ADate : TDateTime) : Boolean; dynamic;
-    procedure DoOnMouseWheel(Shift : TShiftState;
-                             Delta, XPos, YPos : SmallInt); override;
-    function IsReadOnly : Boolean; dynamic;
+    procedure DoOnChange(Value: TDateTime); dynamic;
+    function DoOnGetDateEnabled(ADate: TDateTime): Boolean; dynamic;
+   {$IFDEF LCL}
+    function DoMouseWheel(Shift: TShiftState; Delta: Integer; MousePos: TPoint): Boolean; override;
+   {$ELSE}
+    procedure DoOnMouseWheel(Shift: TShiftState; Delta, XPos, YPos: SmallInt); override;
+   {$ENDIF}
+    function IsReadOnly: Boolean; dynamic;
       {-return true if the calendar is in read-only mode}
-    procedure KeyDown(var Key : Word; Shift : TShiftState); override;
-    procedure KeyPress(var Key : Char); override;
-    procedure MouseDown(Button : TMouseButton;
-                        Shift : TShiftState;
-                        X, Y : Integer); override;
-    procedure MouseUp(Button : TMouseButton;
-                      Shift : TShiftState; X, Y : Integer); override;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure KeyPress(var Key: Char); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure Paint; override;
 
   public
-    constructor Create(AOwner : TComponent); override;
-    constructor CreateEx(AOwner : TComponent; AsPopup : Boolean); virtual;
+    constructor Create(AOwner: TComponent); override;
+    constructor CreateEx(AOwner: TComponent; AsPopup: Boolean); virtual;
     destructor Destroy; override;
-    procedure SetBounds(ALeft, ATop, AWidth, AHeight : Integer); override;
+    procedure LoadLanguage;
 
-    function GetControlType : TVpItemType; override;
+    procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
-    procedure IncDay(Delta : Integer);
-    procedure IncMonth(Delta : Integer);
-    procedure IncYear(Delta : Integer);
+    function GetControlType: TVpItemType; override;
 
-    procedure PaintToCanvas (ACanvas : TCanvas;
-                             ARect   : TRect;
-                             Angle   : TVpRotationAngle;
-                             ADate   : TDateTime);
-    procedure RenderToCanvas (RenderCanvas : TCanvas;
-                              RenderIn     : TRect;
-                              Angle        : TVpRotationAngle;
-                              Scale        : Extended;
-                              RenderDate   : TDateTime;
-                              StartLine    : Integer;
-                              StopLine     : Integer;
-                              UseGran      : TVpGranularity;
-                              DisplayOnly  : Boolean); override;
+    procedure IncDay(Delta: Integer);
+    procedure IncMonth(Delta: Integer);
+    procedure IncYear(Delta: Integer);
+
+    procedure PaintToCanvas(ACanvas: TCanvas; ARect: TRect;
+      Angle: TVpRotationAngle; ADate: TDateTime);
+    procedure RenderToCanvas(RenderCanvas: TCanvas; RenderIn: TRect;
+      Angle: TVpRotationAngle; Scale: Extended; RenderDate: TDateTime;
+      StartLine: Integer; StopLine: Integer; UseGran: TVpGranularity;
+      DisplayOnly: Boolean); override;
     procedure SetToday;
 
     { LinkHandler is the method which is called by the ControlLink component,  }
     { it is used to synchronize the calendar's date with other Visual PlanIt   }
     { controls do not call the LinkHandler procedure programatically.          }
-    procedure LinkHandler(Sender: TComponent;
-      NotificationType: TVpNotificationType;
+    procedure LinkHandler(Sender: TComponent; NotificationType: TVpNotificationType;
       const Value: Variant); override;
 
-    property Browsing : Boolean
-      read FBrowsing;
+    property Browsing : Boolean read FBrowsing;
     property Canvas;
-    property Day : Integer
-      read GetDay;
-    property Month : Integer
-      read GetMonth;
-    property Year : Integer
-      read GetYear;
+    property Day: Integer read GetDay;
+    property Month : Integer read GetMonth;
+    property Year : Integer read GetYear;
 
     {properties}
-    property BorderStyle : TBorderStyle
-      read FBorderStyle write SetBorderStyle;
+    property Align;
+    property Anchors;
+   {$IFDEF LCL}
+    property BorderSpacing;
+   {$ENDIF}
+    property BorderStyle: TBorderStyle read FBorderStyle write SetBorderStyle;
     property Color;
-    property Colors : TVpCalColors
-      read FColors write FColors;
-    property Date : TDateTime
-      read FDate write SetDate;
-    property DateFormat : TVpDateFormat
-      read FDateFormat write SetDateFormat;
-    property DayNameWidth : TVpDayNameWidth
-      read FDayNameWidth write SetDayNameWidth;
-    property Options : TVpCalDisplayOptions
-      read FOptions write SetDisplayOptions;
-    property ReadOnly : Boolean
-      read FReadOnly write FReadOnly;
-    property WantDblClicks : Boolean
-      read FWantDblClicks write SetWantDblClicks;
-    property WeekStarts : TVpDayType
-      read FWeekStarts write SetWeekStarts;
+    property Colors: TVpCalColors read FColors write FColors;
+    property Date: TDateTime read FDate write SetDate;
+    property DateFormat: TVpDateFormat read FDateFormat write SetDateFormat;
+    property DayNameWidth: TVpDayNameWidth read FDayNameWidth write SetDayNameWidth;
+    property Options: TVpCalDisplayOptions read FOptions write SetDisplayOptions;
+    property ReadOnly: Boolean read FReadOnly write FReadOnly;
+    property WantDblClicks: Boolean read FWantDblClicks write SetWantDblClicks;
+    property WeekStarts: TVpDayType read FWeekStarts write SetWeekStarts;
 
     {events}
-    property OnChange : TDateChangeEvent
-      read  FOnChange write FOnChange;
-    property OnDrawDate : TCalendarDateEvent
-      read FOnDrawDate write FOnDrawDate;
-    property OnDrawItem : TCalendarDateEvent
-      read FOnDrawItem write FOnDrawItem;
-    property OnGetDateEnabled : TGetDateEnabledEvent
-      read FOnGetDateEnabled write FOnGetDateEnabled;
-    property OnGetHighlight : TGetHighlightEvent
-      read FOnGetHighlight write FOnGetHighlight;
+    property OnChange: TDateChangeEvent read  FOnChange write FOnChange;
+    property OnDrawDate : TCalendarDateEvent read FOnDrawDate write FOnDrawDate;
+    property OnDrawItem : TCalendarDateEvent read FOnDrawItem write FOnDrawItem;
+    property OnGetDateEnabled : TGetDateEnabledEvent read FOnGetDateEnabled write FOnGetDateEnabled;
+    property OnGetHighlight : TGetHighlightEvent read FOnGetHighlight write FOnGetHighlight;
   end;
 
   TVpCalendar = class(TVpCustomCalendar)
@@ -377,14 +351,25 @@ type
 implementation
 
 uses
-  VpData;
+ {$IFDEF LCL}
+  DateUtils,
+ {$ENDIF}
+  VpCalendarPainter;
 
 const
-  calMargin = 4; {left, right, and top margin}
+  CAL_MARGIN = 4; {left, right, and top margin}
 
+function SumOf(const A: array of Integer; First, Last: Integer): Integer;
+var
+  I : Integer;
+begin
+  Result := 0;
+  for I := First to Last do
+    Result := Result  + A[I];
+end;
 
 {*** TVpCalColors ***}
-procedure TVpCalColors.Assign(Source : TPersistent);
+procedure TVpCalColors.Assign(Source: TPersistent);
 begin
   if Source is TVpCalColors then begin
     FCalColors := TVpCalColors(Source).FCalColors;
@@ -417,13 +402,13 @@ begin
 end;
 {=====}
 
-function TVpCalColors.GetColor(Index : Integer) : TColor;
+function TVpCalColors.GetColor(Index: Integer) : TColor;
 begin
   Result := FCalColors[Index];
 end;
 {=====}
 
-procedure TVpCalColors.SetColor(Index : Integer; Value : TColor);
+procedure TVpCalColors.SetColor(Index: Integer; Value: TColor);
 begin
   if Value <> FCalColors[Index] then begin
     FCalColors[Index] := Value;
@@ -432,7 +417,7 @@ begin
 end;
 {=====}
 
-procedure TVpCalColors.SetColorScheme(Value : TVpCalColorScheme);
+procedure TVpCalColors.SetColorScheme(Value: TVpCalColorScheme);
 begin
   if Value <> FColorScheme then begin
     SettingScheme := True;
@@ -450,12 +435,10 @@ end;
 {=====}
 
 
-
-
 {*** TVpCustomCalendar ***}
-procedure TVpCustomCalendar.calBtnClick(Sender : TObject);
+procedure TVpCustomCalendar.calBtnClick(Sender: TObject);
 var
-  Key : Word;
+  Key: Word;
 begin
   SetFocus;
   Key := 0;
@@ -482,11 +465,11 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.calChangeMonth(Sender : TObject);
+procedure TVpCustomCalendar.calChangeMonth(Sender: TObject);
 var
-  Y, M, D : Word;
-  MO      : Integer;
-  MI      : TMenuItem;
+  Y, M, D: Word;
+  MO: Integer;
+  MI: TMenuItem;
 begin
   MI := (Sender as TMenuItem);
   DecodeDate(FDate, Y, M, D);
@@ -498,25 +481,25 @@ begin
     Inc(Y);
   M := M + MO;
   {set day}
-  if D > DaysInMonth(Y, MO) then
-    D := DaysInMonth(Y, MO);
+  if D > DaysInAMonth(Y, MO) then
+    D := DaysInAMonth(Y, MO);
   SetDate(calGetValidDate(EncodeDate(Y, MO, D)-1, +1));
   if (Assigned(FOnChange)) then
     FOnChange(Self, FDate);
 end;
 {=====}
 
-procedure TVpCustomCalendar.calColorChange(Sender : TObject);
+procedure TVpCustomCalendar.calColorChange(Sender: TObject);
 begin
   Invalidate;
 end;
 {=====}
 
-function TVpCustomCalendar.calGetCurrentRectangle : TRect;
+function TVpCustomCalendar.calGetCurrentRectangle: TRect;
   {-get bounding rectangle for the current date}
 var
-  Idx  : Integer;
-  R, C : Integer;
+  Idx : Integer;
+  R, C: Integer;
 begin
   {index into the month grid}
   Idx := clFirst + Pred(clDay) + 13;
@@ -526,10 +509,10 @@ begin
 end;
 {=====}
 
-function TVpCustomCalendar.calGetValidDate(ADate : TDateTime;
-  Delta : Integer) : TDateTime;
+function TVpCustomCalendar.calGetValidDate(ADate: TDateTime;
+  Delta: Integer): TDateTime;
 var
-  I, X : Integer;
+  I, X: Integer;
   Valid: Boolean;
   Fwd: Boolean;
 begin
@@ -557,10 +540,10 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.calRebuildCalArray (ADate : TDateTime);
+procedure TVpCustomCalendar.calRebuildCalArray(ADate: TDateTime);
 var
-  Day1 : TVpDayType;
-  I, J : Integer;
+  Day1: TVpDayType;
+  I, J: Integer;
 begin
   HandleNeeded;
   DecodeDate(ADate, clYear, clMonth, clDay);
@@ -575,13 +558,13 @@ begin
   clFirst := I;
 
   {find the index of the last day in the month}
-  clLast := clFirst + DaysInMonth(clYear, clMonth) - 1;
+  clLast := clFirst + DaysInAMonth(clYear, clMonth) {%H-}- 1;
 
   {initialize the first part of the calendar}
   if clMonth = 1 then
-    J := DaysInMonth(clYear - 1, 12)
+    J := DaysInAMonth(clYear - 1, 12)
   else
-    J := DaysInMonth(clYear, clMonth-1);
+    J := DaysInAMonth(clYear, clMonth-1);
   for I := clFirst-1 downto 1 do begin
     clCalendar[I] := J;
     Dec(J);
@@ -599,37 +582,25 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.CalculateSizes (WorkCanvas  : TCanvas;
-                                            Angle       : TVpRotationAngle;
-                                            Rect        : TRect;
-                                            var Row     : TRowArray;
-                                            var Col     : TColArray;
-                                            DisplayOnly : Boolean);
-
+procedure TVpCustomCalendar.CalculateSizes(WorkCanvas: TCanvas;
+  Angle: TVpRotationAngle; Rect: TRect; out Row: TRowArray; out Col: TColArray;
+  DisplayOnly: Boolean);
   {-calcualte new sizes for rows and columns}
 var
-  R   : Integer;
-  C   : Integer;
-  D1  : Integer;
-  D2  : Integer;
-  CH  : Integer;
-  RH  : Integer;
-  LR  : Integer;
-
-  function SumOf(const A : array of Integer; First, Last : Integer) : Integer;
-  var
-    I : Integer;
-  begin
-    Result := 0;
-    for I := First to Last do
-      Result := Result  + A[I];
-  end;
+  R: Integer;
+  C: Integer;
+  D1: Integer;
+  D2: Integer;
+  CH: Integer;
+  RH: Integer;
+  LR: Integer;
 
 begin
   if (Angle = ra90) or (Angle = ra270) then
     clWidth := Rect.Bottom - Rect.Top - 2*calMargin
   else
     clWidth := Rect.Right - Rect.Left - 2*calMargin;
+
   {store row and column sizes}
   for C := 0 to 6 do
     Col[C] := clWidth div 7;
@@ -650,14 +621,14 @@ begin
     CH := Rect.Right - Rect.Left - 2*calMargin - Row[0] - Row[1]
   else
     CH := Rect.Bottom - Rect.Top - 2*calMargin - Row[0] - Row[1];
-  if ((not (cdoShowRevert in Options)) and
-      (not (cdoShowToday in Options))) or
-     DisplayOnly then
+  if ((not (cdoShowRevert in Options)) and (not (cdoShowToday in Options))) or
+     DisplayOnly
+  then
     LR := 7
   else
     LR := 8;
 
-    RH := CH div (LR - 1);
+  RH := CH div (LR - 1);
 
   for R := 2 to 8 do
     Row[R] := RH;
@@ -693,20 +664,11 @@ begin
   end;
 end;
 
-procedure TVpCustomCalendar.calRecalcSize (DisplayOnly : Boolean);
+procedure TVpCustomCalendar.calRecalcSize(DisplayOnly: Boolean);
   {-calcualte new sizes for rows and columns}
 var
-  Row : TRowArray;
-  Col : TColArray;
-
-  function SumOf(const A : array of Integer; First, Last : Integer) : Integer;
-  var
-    I : Integer;
-  begin
-    Result := 0;
-    for I := First to Last do
-      Result := Result  + A[I];
-  end;
+  Row: TRowArray;
+  Col: TColArray;
 
 begin
   if not HandleAllocated then
@@ -730,8 +692,7 @@ begin
   clBtnNextYear.Visible := (cdoShowNavBtns in FOptions);
   clBtnPrevYear.Visible := (cdoShowNavBtns in FOptions);
 
-  CalculateSizes (Canvas, ra0, Rect (0, 0, Width, Height), Row, Col,
-                  DisplayOnly);
+  CalculateSizes(Canvas, ra0, Rect (0, 0, Width, Height), Row, Col, DisplayOnly);
 
   {position and size the left and right month buttons}
   {position and size the next and prev year buttons}
@@ -769,7 +730,6 @@ begin
   clBtnToday.Top := ClientHeight - calMargin - clBtnToday.Height + 1;
   clBtnToday.Left := ClientWidth - calMargin - clBtnToday.Width;
 
-
   {position and size "revert" button}
   clBtnRevert.Height := Row[8];
   clBtnRevert.Width := Col[5] + Col[6] - calMargin;
@@ -778,7 +738,7 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.CMEnter(var Msg : TMessage);
+procedure TVpCustomCalendar.CMEnter(var Msg: {$IFDEF DELPHI}TMessage{$ELSE}TLMessage{$ENDIF});
 var
   R : TRect;
 begin
@@ -792,7 +752,7 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.CMExit(var Msg : TMessage);
+procedure TVpCustomCalendar.CMExit(var Msg: {$IFDEF DELPHI}TMessage{$ELSE}TLMessage{$ENDIF});
 var
   R : TRect;
 begin
@@ -804,75 +764,100 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.CMFontChanged(var Msg : TMessage);
+procedure TVpCustomCalendar.CMFontChanged(var Msg: {$IFDEF DELPHI}TMessage{$ELSE}TLMessage{$ENDIF});
 begin
   inherited;
 
   if csLoading in ComponentState then
     Exit;
 
-  calRecalcSize (False);
+  calRecalcSize(False);
   Invalidate;
 end;
 {=====}
 
-constructor TVpCustomCalendar.Create(AOwner : TComponent);
+constructor TVpCustomCalendar.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
 
   ControlStyle := ControlStyle + [csClickEvents, csFramed] - [csCaptureMouse];
 
-  Height         := 140;
-  TabStop        := True;
-  Width          := 200;
-  Font.Name      := 'MS Sans Serif';
-  Font.Size      := 8;
+  Height := 140;
+  TabStop := True;
+  Width := 200;
 
-  FBorderStyle   := bsNone;
+  calMargin := ScaleX(CAL_MARGIN, DesignTimeDPI);
+
+ {$IFNDEF LCL}
+  Font.Name := 'MS Sans Serif';
+  Font.Size := 8;
+ {$ENDIF}
+
+  FBorderStyle := bsNone;
   FDayNameWidth  := 3;
-  FDateFormat    := dfLong;
-  FOptions       := [cdoShortNames, cdoShowYear, cdoShowRevert, cdoShowToday,
-                     cdoShowNavBtns, cdoHighlightSun, cdoHighlightSat];
+  FDateFormat := dfLong;
+  FOptions := [cdoShortNames, cdoShowYear, cdoShowRevert, cdoShowToday,
+               cdoShowNavBtns, cdoHighlightSun, cdoHighlightSat];
   FWantDblClicks := True;
-  FWeekStarts    := dtSunday;
-  FLastRenderX   := 0;
-  FLastRenderY   := 0;
+  FWeekStarts := dtSunday;
+  FLastRenderX := 0;
+  FLastRenderY := 0;
 
   clInLinkHandler := false;
 
   {create navigation buttons}
-  clBtnLeft      := TSpeedButton.Create(Self);
+  clBtnLeft := TSpeedButton.Create(Self);
   clBtnLeft.Parent := Self;
+  {$IFDEF NEW_ICONS}
+  LoadGlyphFromRCDATA(clBtnLeft.Glyph, 'VpLArrow', 16, 24, 32);
+  {$ELSE}
   clBtnLeft.Glyph.LoadFromResourceName(HINSTANCE,'VPLEFTARROW'); //soner geändert: clBtnLeft.Glyph.Handle := LoadBaseBitmap('VPLEFTARROW');
+  {$ENDIF}
   clBtnLeft.OnClick := calBtnClick;
-  clBtnLeft.Hint := RSCalendarPrevMonth;
+  clBtnLeft.Hint := RSPrevMonth;
   clBtnLeft.ShowHint := True;
 
   clBtnRight := TSpeedButton.Create(Self);
   clBtnRight.Parent := Self;
+  {$IFDEF NEW_ICONS}
+  LoadGlyphFromRCDATA(clBtnRight.Glyph, 'VpRArrow', 16, 24, 32);
+  {$ELSE}
   clBtnRight.Glyph.LoadFromResourceName(HINSTANCE,'VPRIGHTARROW'); //soner geändert: clBtnRight.Glyph.Handle := LoadBaseBitmap('VPRIGHTARROW');
+  {$ENDIF}
   clBtnRight.OnClick := calBtnClick;
-  clBtnRight.Hint := RSCalendarNextMonth;
+  clBtnRight.Hint := RSNextMonth;
   clBtnRight.ShowHint := True;
 
   clBtnNextYear := TSpeedButton.Create(Self);
   clBtnNextYear.Parent := Self;
+  {$IFDEF NEW_ICONS}
+  LoadGlyphFromRCDATA(clBtnNextYear.Glyph, 'VpRArrows', 16, 24, 32);
+  {$ELSE}
   clBtnNextYear.Glyph.LoadFromResourceName(HINSTANCE,'VPRIGHTARROWS'); //soner geöndert: clBtnNextYear.Glyph.Handle := LoadBaseBitmap('VPRIGHTARROWS');
+  {$ENDIF}
   clBtnNextYear.OnClick := calBtnClick;
-  clBtnNextYear.Hint := RSCalendarNextYear;
+  clBtnNextYear.Hint := RSNextYear;
   clBtnNextYear.ShowHint := True;
 
   clBtnPrevYear := TSpeedButton.Create(Self);
   clBtnPrevYear.Parent := Self;
+  {$IFDEF NEW_ICONS}
+  LoadGlyphFromRCData(clBtnPrevYear.Glyph, 'VpLArrows', 16, 24, 32);
+  {$ELSE}
   clBtnPrevYear.Glyph.LoadFromResourceName(HINSTANCE,'VPLEFTARROWS'); //soner geöndert: clBtnPrevYear.Glyph.Handle := LoadBaseBitmap('VPLEFTARROWS');
+  {$ENDIF}
   clBtnPrevYear.OnClick := calBtnClick;
-  clBtnPrevYear.Hint := RSCalendarPrevYear;
+  clBtnPrevYear.Hint := RSPrevYear;
   clBtnPrevYear.ShowHint := True;
 
   {create "revert" button}
   clBtnRevert := TSpeedButton.Create(Self);
   clBtnRevert.Parent := Self;
+  {$IFDEF NEW_ICONS}
+  LoadGlyphFromRCData(clBtnRevert.Glyph, 'VpRevert', 16, 24, 32);
+  {$ELSE}
   clBtnRevert.Glyph.LoadFromResourceName(HINSTANCE,'VPREVERT'); //soner geändert: clBtnRevert.Glyph.Handle := LoadBaseBitmap('VPREVERT');
+  {$ENDIF}
   clBtnRevert.OnClick := calBtnClick;
   clBtnRevert.Hint := RSCalendarRevert;
   clBtnRevert.ShowHint := True;
@@ -880,9 +865,13 @@ begin
   {create "today" button}
   clBtnToday := TSpeedButton.Create(Self);
   clBtnToday.Parent := Self;
+  {$IFDEF NEW_ICONS}
+  LoadGlyphFromRCData(clBtnToday.Glyph, 'VpToday', 16, 24, 32);
+  {$ELSE}
   clBtnToday.Glyph.LoadFromResourceName(HINSTANCE,'VPTODAY'); //soner geändert: clBtnToday.Glyph.Handle := LoadBaseBitmap('VPTODAY');
+  {$ENDIF}
   clBtnToday.OnClick := calBtnClick;
-  clBtnToday.Hint := RSCalendarToday;
+  clBtnToday.Hint := RSToday;
   clBtnToday.ShowHint := True;
 
   {assign default color scheme}
@@ -901,16 +890,18 @@ begin
 end;
 {=====}
 
-constructor TVpCustomCalendar.CreateEx(AOwner : TComponent; AsPopup : Boolean);
+constructor TVpCustomCalendar.CreateEx(AOwner: TComponent; AsPopup: Boolean);
 begin
   clPopup := AsPopup;
   Create(AOwner);
 end;
 {=====}
 
-procedure TVpCustomCalendar.CreateParams(var Params : TCreateParams);
+procedure TVpCustomCalendar.CreateParams(var Params: TCreateParams);
+{$IFNDEF LCL}
 const
-  BorderStyles : array[TBorderStyle] of LongInt = (0, WS_BORDER);
+  BorderStyles: array[TBorderStyle] of LongInt = (0, WS_BORDER);
+{$ENDIF}
 begin
   inherited CreateParams(Params);
 {$IFNDEF LCL}
@@ -939,7 +930,7 @@ procedure TVpCustomCalendar.CreateWnd;
 begin
   inherited CreateWnd;
 
-  calRecalcSize (False);
+  calRecalcSize(False);
 
   {if not set, get current date}
   if FDate = 0 then
@@ -958,14 +949,14 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.DoOnChange(Value : TDateTime);
+procedure TVpCustomCalendar.DoOnChange(Value: TDateTime);
 begin
   if Assigned(FOnChange) then
     FOnChange(Self, Value);
 end;
 {=====}
 
-function TVpCustomCalendar.DoOnGetDateEnabled(ADate : TDateTime) : Boolean;
+function TVpCustomCalendar.DoOnGetDateEnabled(ADate: TDateTime) : Boolean;
 begin
   Result := True;
   if Assigned(FOnGetDateEnabled) then
@@ -973,12 +964,23 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.DoOnMouseWheel(Shift : TShiftState; Delta, XPos, YPos : SmallInt);
+{$IFDEF LCL}
+function TVpCustomCalendar.DoMouseWheel(Shift: TShiftState;
+  Delta: Integer; MousePos: TPoint): Boolean;
+{$ELSE}
+procedure TVpCustomCalendar.DoMouseWheel(Shift: TShiftState;
+  Delta, XPos, YPos: SmallInt);
+{$ENDIF}
+const
+  WHEEL_DELTA = 120;  // in unit Windows.
 var
-  Key : Word;
+  key: Word;
 begin
+ {$IFDEF LCL}
+  Result := inherited DoMouseWheel(Shift, Delta, MousePos);
+ {$ELSE}
   inherited DoOnMouseWheel(Shift, Delta, XPos, YPos);
-{$IFNDEF LCL}
+ {$ENDIF}
   if Abs(Delta) = WHEEL_DELTA then begin
     {inc/dec month}
     if Delta < 0 then
@@ -1001,23 +1003,22 @@ begin
       Key := VK_UP;
     KeyDown(Key, []);
   end;
-{$ENDIF}
 end;
 {=====}
 
-function TVpCustomCalendar.IsReadOnly : Boolean;
+function TVpCustomCalendar.IsReadOnly: Boolean;
 begin
   Result := ReadOnly;
 end;
 {=====}
 
-procedure TVpCustomCalendar.KeyDown(var Key : Word; Shift : TShiftState);
+procedure TVpCustomCalendar.KeyDown(var Key: Word; Shift: TShiftState);
 var
-  Y          : Word;
-  M          : Word;
-  D          : Word;
-  HD         : TDateTime;
-  PopupPoint : TPoint;
+  Y: Word;
+  M: Word;
+  D: Word;
+  HD: TDateTime;
+  PopupPoint: TPoint;
 
 begin
   inherited KeyDown(Key, Shift);
@@ -1027,88 +1028,88 @@ begin
 
   HD := FDate;
   case Key of
-    VK_LEFT  : if Shift = [] then
-                 SetDate(calGetValidDate(FDate, -1))
-               else if ssCtrl in Shift then
-                 IncMonth (-1)
-               else if ssShift in Shift then
-                 IncYear (-1);
+    VK_LEFT:
+      if Shift = [] then
+        SetDate(calGetValidDate(FDate, -1))
+      else if ssCtrl in Shift then
+        IncMonth (-1)
+      else if ssShift in Shift then
+        IncYear (-1);
 
-    VK_RIGHT : if Shift = [] then
-                 SetDate(calGetValidDate(FDate, +1))
-               else if ssCtrl in Shift then
-                 IncMonth (1)
-               else if ssShift in Shift then
-                 IncYear (1);
-    VK_UP    : if Shift = [] then
-                 SetDate(calGetValidDate(FDate, -7))
-               else if ssCtrl in Shift then
-                 IncYear (-1)
-               else if ssShift in Shift then
-                 IncMonth (-1);
-    VK_DOWN  : if Shift = [] then
-                 SetDate(calGetValidDate(FDate, +7))
-               else if ssCtrl in Shift then
-                 IncYear (1)
-               else if ssShift in Shift then
-                 IncMonth (1);
-    VK_HOME  :
-      begin
-        if ssCtrl in Shift then begin
-          DecodeDate(FDate, Y, M, D);
-          SetDate(calGetValidDate(EncodeDate(Y, 1, 1)-1, +1));
-        end else if Shift = [] then begin
-          DecodeDate(FDate, Y, M, D);
-          SetDate(calGetValidDate(EncodeDate(Y, M, 1)-1, +1));
-        end;
+    VK_RIGHT:
+      if Shift = [] then
+        SetDate(calGetValidDate(FDate, +1))
+      else if ssCtrl in Shift then
+        IncMonth (1)
+      else if ssShift in Shift then
+        IncYear (1);
+
+    VK_UP:
+      if Shift = [] then
+        SetDate(calGetValidDate(FDate, -7))
+      else if ssCtrl in Shift then
+        IncYear (-1)
+      else if ssShift in Shift then
+        IncMonth (-1);
+
+    VK_DOWN:
+      if Shift = [] then
+        SetDate(calGetValidDate(FDate, +7))
+      else if ssCtrl in Shift then
+        IncYear (1)
+      else if ssShift in Shift then
+        IncMonth (1);
+
+    VK_HOME:
+      if ssCtrl in Shift then begin
+        DecodeDate(FDate, Y, M, D);
+        SetDate(calGetValidDate(EncodeDate(Y, 1, 1)-1, +1));
+      end else if Shift = [] then begin
+        DecodeDate(FDate, Y, M, D);
+        SetDate(calGetValidDate(EncodeDate(Y, M, 1)-1, +1));
       end;
-    VK_END   :
-      begin
-        if ssCtrl in Shift then begin
-          DecodeDate(FDate, Y, M, D);
-          SetDate(calGetValidDate(EncodeDate(Y, 12, DaysInMonth(Y, 12))+1, -1));
-        end else if Shift = [] then begin
-          DecodeDate(FDate, Y, M, D);
-          SetDate(calGetValidDate(EncodeDate(Y, M, DaysInMonth(Y, M))+1, -1));
-        end;
+
+    VK_END:
+      if ssCtrl in Shift then begin
+        DecodeDate(FDate, Y, M, D);
+        SetDate(calGetValidDate(EncodeDate(Y, 12, DaysInAMonth(Y, 12))+1, -1));
+      end else if Shift = [] then begin
+        DecodeDate(FDate, Y, M, D);
+        SetDate(calGetValidDate(EncodeDate(Y, M, DaysInAMonth(Y, M))+1, -1));
       end;
-    VK_PRIOR :
-      begin
-        if ssCtrl in Shift then begin
-          IncYear(-1);
-        end else if Shift = [] then begin
-          IncMonth(-1);
-        end;
+
+    VK_PRIOR:
+      if ssCtrl in Shift then begin
+        IncYear(-1);
+      end else if Shift = [] then begin
+        IncMonth(-1);
       end;
-    VK_NEXT :
-      begin
-        if ssCtrl in Shift then begin
-          IncYear(1);
-        end else if Shift = [] then begin
-          IncMonth(1);
-        end;
+
+    VK_NEXT:
+      if ssCtrl in Shift then begin
+        IncYear(1);
+      end else if Shift = [] then begin
+        IncMonth(1);
       end;
-    VK_BACK :
-      begin
-        if ssAlt in Shift then
-          SetDate(calGetValidDate(SysUtils.Date-1, +1));
-      end;
+
+    VK_BACK:
+      if ssAlt in Shift then
+        SetDate(calGetValidDate(SysUtils.Date-1, +1));
+
     VK_ESCAPE:
-      begin
-        if Shift = [] then
-          SetDate(calGetValidDate(clRevertDate-1, +1));
-      end;
-    VK_F10   :
+      if Shift = [] then
+        SetDate(calGetValidDate(clRevertDate-1, +1));
+
+    VK_F10:
       if (ssShift in Shift) and not (Assigned (PopupMenu)) then begin
         PopupPoint := GetClientOrigin;
-        FDefaultPopup.Popup (PopupPoint.x + 10,
-                             PopupPoint.y + 10);
+        FDefaultPopup.Popup (PopupPoint.x + 10, PopupPoint.y + 10);
       end;
-    VK_APPS  :
+
+    VK_APPS:
       if not Assigned (PopupMenu) then begin
         PopupPoint := GetClientOrigin;
-        FDefaultPopup.Popup (PopupPoint.x + 10,
-                             PopupPoint.y + 10);
+        FDefaultPopup.Popup (PopupPoint.x + 10, PopupPoint.y + 10);
       end;
   end;
 
@@ -1123,7 +1124,7 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.KeyPress(var Key : Char);
+procedure TVpCustomCalendar.KeyPress(var Key: Char);
 begin
   inherited KeyPress(Key);
 
@@ -1140,20 +1141,16 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.MouseDown(Button : TMouseButton; Shift : TShiftState; X, Y : Integer);
+procedure TVpCustomCalendar.MouseDown(Button: TMouseButton; Shift: TShiftState;
+  X, Y: Integer);
 var
-  Yr           : Word;
-  M            : Word;
-  D            : Word;
-  Yr2          : Word;
-  M2           : Word;
-  D2           : Word;
-  R, C         : Integer;
-  OldIdx       : Integer;
-  NewIdx       : Integer;
-  Re           : TRect;
-  Ignore       : Boolean;
-  ClientOrigin : TPoint;
+  Yr, M, D: Word;
+  Yr2, M2, D2: Word;
+  R, C: Integer;
+  OldIdx, NewIdx: Integer;
+  Re: TRect;
+  Ignore: Boolean;
+  ClientOrigin: TPoint;
 
 begin
   inherited;
@@ -1162,9 +1159,7 @@ begin
     if not focused then
       SetFocus;
     ClientOrigin := GetClientOrigin;
-
-    FDefaultPopup.Popup (X + ClientOrigin.x,
-                         Y + ClientOrigin.y);
+    FDefaultPopup.Popup (X + ClientOrigin.x, Y + ClientOrigin.y);
     Exit;
   end;
 
@@ -1248,12 +1243,11 @@ begin
         NewIdx := ((R-2) * 7) + Succ(C);
         OldIdx := clFirst + Pred(clDay);
         Ignore := False;
-        if NewIdx <> OldIdx then begin
 
+        if NewIdx <> OldIdx then begin
           {see if this date is disabled - selection not allowed}
           if not DoOnGetDateEnabled(FDate+(NewIdx-OldIdx)) then
             Break;
-
           DecodeDate(FDate+(NewIdx-OldIdx), Yr2, M2, D2);
           if not (cdoShowInactive in FOptions) then begin
             {will this change the month?}
@@ -1284,27 +1278,26 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.MouseUp(Button : TMouseButton; Shift : TShiftState; X, Y : Integer);
+procedure TVpCustomCalendar.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
-  P  : TPoint;
-  M  : TPopUpMenu;
-  MI : TMenuItem;
-  I  : Integer;
-  J  : Integer;
-  K  : Integer;
-  MO : Integer;
-  YR : Word;
-  MM : Word;
-  DA : Word;
-  HC : Boolean;
+  P: TPoint;
+  M: TPopUpMenu;
+  MI: TMenuItem;
+  I: Integer;
+  J: Integer;
+  K: Integer;
+  MO: Integer;
+  YR: Word;
+  MM: Word;
+  DA: Word;
+  HC: Boolean;
 begin
   inherited MouseUp(Button, Shift, X, Y);
 
   if (PopUpMenu = nil) and (Button = mbRight) and
      (Y < clRowCol[1,0].Top) {above day names} and
-     (X > clBtnPrevYear.Left + clBtnNextYear.Width) and
-     (X < clBtnNextYear.Left) then begin
-
+     (X > clBtnPrevYear.Left + clBtnNextYear.Width) and (X < clBtnNextYear.Left)
+  then begin
     if not Focused and CanFocus then
       SetFocus;
 
@@ -1327,7 +1320,7 @@ begin
       {create the menu items}
       repeat
         MI := TMenuItem.Create(M);
-        MI.Caption := LongMonthNames[I];
+        MI.Caption := FormatSettings.LongMonthNames[I];
         MI.Enabled := Enabled;
         MI.OnClick := calChangeMonth;
         MI.Tag := I;
@@ -1342,10 +1335,14 @@ begin
       HC := GetCapture = Handle;
 
       P.X := X-20;
-      P.Y := Y - ((GetSystemMetrics(SM_CYMENU)*7) div 2);
+      P.Y := Y - (GetSystemMetrics(SM_CYMENU)*7) div 2;
       P := ClientToScreen(P);
       {move the mouse to cause the menu item to highlight}
+      {$IFDEF DELPHI}
       PostMessage(Handle, WM_MOUSEMOVE, 0, MAKELONG(P.X,P.Y+1));
+      {$ELSE}
+      PostMessage(Handle, LM_MOUSEMOVE, 0, MAKELONG(P.X,P.Y+1));
+      {$ENDIF}
 
       clInPopup := True;
       try
@@ -1366,7 +1363,7 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.IncDay(Delta : Integer);
+procedure TVpCustomCalendar.IncDay(Delta: Integer);
   {-change the day by Delta (signed) days}
 begin
   if Delta > 0 then
@@ -1376,11 +1373,11 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.IncMonth(Delta : Integer);
+procedure TVpCustomCalendar.IncMonth(Delta: Integer);
   {-change the month by Delta (signed) months}
 var
-  Y, M, D    : Word;
-  iY, iM, iD : Integer;
+  Y, M, D: Word;
+  iY, iM, iD: Integer;
 begin
   DecodeDate(FDate, Y, M, D);
   iY := Y; iM := M; iD := D;
@@ -1392,14 +1389,14 @@ begin
     iM := iM + 12;
     Dec(iY);
   end;
-  if iD > DaysInMonth(iY, iM) then
-    iD := DaysInMonth(iY, iM);
+  if iD > DaysInAMonth(iY, iM) then
+    iD := DaysInAMonth(iY, iM);
 
   SetDate(calGetValidDate(EncodeDate(iY, iM, iD)-1, +1));
 end;
 {=====}
 
-procedure TVpCustomCalendar.IncYear(Delta : Integer);
+procedure TVpCustomCalendar.IncYear(Delta: Integer);
 var
   Y, M, D  : Word;
   iY, iM, iD : Integer;
@@ -1407,23 +1404,24 @@ begin
   DecodeDate(FDate, Y, M, D);
   iY := Y; iM := M; iD := D;
   Inc(iY, Delta);
-  if iD > DaysInMonth(iY, iM) then
-    iD := DaysInMonth(iY, iM);
+  if iD > DaysInAMonth(iY, iM) then
+    iD := DaysInAMonth(iY, iM);
   SetDate(calGetValidDate(EncodeDate(iY, iM, iD)-1, +1));
 end;
 {=====}
 
 procedure TVpCustomCalendar.Paint;
 begin
-  RenderToCanvas (Canvas,                      // Paint Canvas
-                  Rect (0, 0, Width, Height),  // Paint Rectangle
-                  ra0,
-                  1,                           // Scale
-                  Date,                        // Date
-                  -1,                          // Start At
-                  -1,                          // End At
-                  gr30Min,
-                  False);                       // Display Only
+  RenderToCanvas(
+    Canvas,                      // Paint Canvas
+    Rect (0, 0, Width, Height),  // Paint Rectangle
+    ra0,
+    1,                           // Scale
+    Date,                        // Date
+    -1,                          // Start At
+    -1,                          // End At
+    gr30Min,
+    False);                      // Display Only
 end;
 {=====}
 
@@ -1442,437 +1440,81 @@ begin
 end;
 {=====}
 
-function TVpCustomCalendar.GetDay : Integer;
+function TVpCustomCalendar.GetDay: Integer;
 begin
   Result := clDay;
 end;
 {=====}
 
-function TVpCustomCalendar.GetMonth : Integer;
+function TVpCustomCalendar.GetMonth: Integer;
 begin
   Result := clMonth;
 end;
 {=====}
 
-function TVpCustomCalendar.GetYear : Integer;
+function TVpCustomCalendar.GetYear: Integer;
 begin
   Result := clYear;
 end;
 {=====}
 
-function TVpCustomCalendar.GetControlType : TVpItemType;
+function TVpCustomCalendar.GetControlType: TVpItemType;
 begin
   Result := itCalendar;
 end;
 
-procedure TVpCustomCalendar.PaintToCanvas (ACanvas : TCanvas;
-                                            ARect   : TRect;
-                                            Angle   : TVpRotationAngle;
-                                            ADate   : TDateTime);
+procedure TVpCustomCalendar.LoadLanguage;
 begin
-  RenderToCanvas (ACanvas, ARect, Angle, 1, ADate, -1, -1, gr30Min, True);
+  FDefaultPopup.Items.Clear;
+  InitializeDefaultPopup;
 end;
 
-procedure TVpCustomCalendar.RenderToCanvas (RenderCanvas : TCanvas;
-                              RenderIn     : TRect;
-                              Angle        : TVpRotationAngle;
-                              Scale        : Extended;
-                              RenderDate   : TDateTime;
-                              StartLine    : Integer;
-                              StopLine     : Integer;
-                              UseGran      : TVpGranularity;
-                              DisplayOnly  : Boolean);
-var
-  R, C       : Integer;
-  I          : Integer;
-  SatCol     : Integer;
-  SunCol     : Integer;
-  DOW        : TVpDayType;
-  Y, M, D    : Word;
-  lBadDate   : Boolean;
-  lDate      : TDateTime;
-  RealWidth  : Integer;
-  RealHeight : Integer;
-  RealLeft   : Integer;
-  RealRight  : Integer;
-  RealTop    : Integer;
-  RealBottom : Integer;
-
-  BevelHighlight   : TColor;
-  BevelShadow      : TColor;
-  InactiveDayColor : TColor;
-  MonthYearColor   : TColor;
-  DayNameColor     : TColor;
-  LineColor        : TColor;
-  EventDayColor    : TColor;
-  DayColor         : TColor;
-  RealColor        : TColor;
-  WeekendColor     : TColor;
-
-  procedure SetMeasurements;
-  begin
-    RealWidth  := TPSViewportWidth (Angle, RenderIn); 
-    RealHeight := TPSViewportHeight (Angle, RenderIn);
-    RealLeft   := TPSViewportLeft (Angle, RenderIn);
-    RealRight  := TPSViewportRight (Angle, RenderIn);
-    RealTop    := TPSViewportTop (Angle, RenderIn);
-    RealBottom := TPSViewportBottom (Angle, RenderIn);
-
-    if RenderDate = 0 then
-      RenderDate := FDate;
-  end;
-
-  procedure DrawDate;
-  var
-    R : TRect;
-    S : string;
-  begin
-    if FDateFormat = dfLong then
-      if cdoShowYear in FOptions then
-        S := FormatDateTime('mmmm yyyy', RenderDate)
-      else
-        S := FormatDateTime('mmmm', RenderDate)
-    else
-      if cdoShowYear in FOptions then
-        S := FormatDateTime('mmm yyyy', RenderDate)
-      else
-        S := FormatDateTime('mmm', RenderDate);
-
-    R := Rect (clRowCol[0, 1].Left + RealLeft,
-               clRowCol[0, 1].Top + RealTop,
-               clRowCol[0, 1].Right + RealLeft,
-               clRowCol[0, 1].Bottom + RealTop);
-    R.Right := clRowCol[0, 6].Left + RealLeft;
-
-    {switch to short date format if string won't fit}
-    if FDateFormat = dfLong then
-      if RenderCanvas.TextWidth(S) > R.Right-R.Left then
-        S := FormatDateTime('mmm yyyy', RenderDate);
-
-    RenderCanvas.Font.Color := MonthYearColor;
-    if Assigned(FOnDrawDate) then
-      FOnDrawDate(Self, RenderDate, R)
-    else
-      TPSCenteredTextOut (RenderCanvas, Angle, RenderIn,
-                          R, S);
-  end;
-
-  procedure DrawDayNames;
-  var
-    I        : Integer;
-    S        : string;
-    DrawRect : TRect;
-
-  begin
-    {draw the day name column labels}
-    RenderCanvas.Font.Color := DayNameColor;
-    I := 0;
-    DOW := FWeekStarts;
-    repeat
-      {record columns for weekends}
-      if DOW = dtSaturday then
-        SatCol := I;
-      if DOW = dtSunday then
-        SunCol := I;
-
-      {get the day name}
-      if cdoShortNames in Options then begin
-        if FDayNameWidth < 1 then
-          S := ShortDayNames[Ord(DOW)+1]
-        else
-          S := Copy(ShortDayNames[Ord(DOW)+1], 1, FDayNameWidth)
-      end else begin
-        if FDayNameWidth < 1 then
-          S := LongDayNames[Ord(DOW)+1]
-        else
-          S := Copy(LongDayNames[Ord(DOW)+1], 1, FDayNameWidth)
-      end;
-
-      {draw the day name above each column}
-      DrawRect := Rect (clRowCol[1, I].Left + RealLeft,
-                        clRowCol[1, I].Top + RealTop,
-                        clRowCol[1, I].Right +  RealLeft,
-                        clRowCol[1, I].Bottom + RealTop);
-      TPSCenteredTextOut (RenderCanvas, Angle, RenderIn,
-                          DrawRect, S);
-      Inc(I);
-      if DOW < High(DOW) then
-        Inc(DOW)
-      else
-        DOW := Low(DOW);
-    until DOW = WeekStarts;
-  end;
-
-  procedure DrawLine;
-  begin
-//    if (not Ctl3D) then begin
-      RenderCanvas.Pen.Color := LineColor;
-      TPSMoveTo (RenderCanvas, Angle, RenderIn,
-                 RealLeft, clRowCol[1,0].Bottom-3 + RealTop);
-      TPSLineTo (RenderCanvas, Angle, RenderIn,
-                 RealRight, clRowCol[1,0].Bottom-3 + RealTop);
-{    end else if Ctl3D then begin
-      RenderCanvas.Pen.Color := BevelHighlight;
-      TPSMoveTo (RenderCanvas, Angle, RenderIn,
-                 RealLeft, clRowCol[1,0].Bottom-3 + RealTop);
-      TPSLineTo (RenderCanvas, Angle, RenderIn,
-                 RealRight, clRowCol[1,0].Bottom-3 + RealTop); 
-      RenderCanvas.Pen.Color := BevelShadow;
-      TPSMoveTo (RenderCanvas, Angle, RenderIn,
-                 RealLeft,  clRowCol[1,0].Bottom-2 + RealTop);
-      TPSLineTo (RenderCanvas, Angle, RenderIn,
-                 RealRight, clRowCol[1,0].Bottom-2 + RealTop);
-    end;  }
-  end;
-
-  procedure DrawDay(R, C, I : Integer; Grayed : Boolean);
-  var
-    Cl       : TColor;
-    OldIdx   : Integer;
-    NewIdx   : Integer;
-    S        : string[10];
-    DrawRect : TRect;
-    TH       : Integer;
-
-  begin
-    {avoid painting day number under buttons}
-    if cdoShowRevert in FOptions then
-      if (R = 8) and (C >= 3) then
-        Exit;
-    if cdoShowToday in FOptions then
-      if (R = 8) and (C >= 5) then
-        Exit;
-
-    {convert to a string and draw it centered in its rectangle}
-    S := IntToStr(clCalendar[I]);
-
-    if Grayed then
-      RenderCanvas.Font.Color := InactiveDayColor;
-
-    if not Grayed or (cdoShowInactive in FOptions) then begin
-      NewIdx := ((R-2) * 7) + Succ(C);
-      OldIdx := clFirst + Pred(clDay);
-      if Assigned(FOnGetHighlight) then begin
-        Cl := RenderCanvas.Font.Color;
-        FOnGetHighlight(Self, RenderDate+(NewIdx-OldIdx), Cl);
-        RenderCanvas.Font.Color := Cl;
-      end;
-      if Assigned(FOnDrawItem) then
-        FOnDrawItem(Self, RenderDate+(NewIdx-OldIdx), clRowCol[R,C])
-      else if clRowCol[R, C].Top <> 0 then begin
-        DrawRect := Rect (clRowCol[R, C].Left + RealLeft,
-                          clRowCol[R, C].Top + RealTop,
-                          clRowCol[R, C].Right + RealLeft,
-                          clRowCol[R, C].Bottom + RealTop);
-        TH := RenderCanvas.TextHeight (S);
-        if TH < DrawRect.Bottom - DrawRect.Top then
-          DrawRect.Top := DrawRect.Top +
-                          ((DrawRect.Bottom - DrawRect.Top) - TH) div 2;
-        TPSCenteredTextOut (RenderCanvas, Angle, RenderIn,
-                            DrawRect, S);
-      end;
-    end;
-  end;
-
-  procedure DrawFocusBox;
-  var
-    R  : TRect;
-    S  : string[10];
-  begin
-    S := IntToStr(clDay);
-
-    { set highlight color and font style for days with events }
-    RenderCanvas.Font.Style :=
-        RenderCanvas.Font.Style - [fsBold];
-    lBadDate := false;
-
-    if (DataStore <> nil) and (DataStore.Resource <> nil) then begin
-      DecodeDate(RenderDate, Y, M, D);
-      try
-        {$IFDEF VERSION6}
-        if not TryEncodeDate (Y, M, clDay, lDate) then
-          lBadDate := true;
-        {$ELSE}
-        lDate := EncodeDate(Y, M, clDay);
-        {$ENDIF}
-      except
-        lBadDate := true;
-      end;
-
-      if (not lBadDate)
-      and (DataStore.Resource.Schedule.EventCountByDay(lDate) > 0)
-      then begin
-        RenderCanvas.Font.Style :=
-            RenderCanvas.Font.Style + [fsBold, fsUnderline];
-        RenderCanvas.Font.Color := EventDayColor;
-      end else
-        RenderCanvas.Font.Style :=
-          RenderCanvas.Font.Style - [fsBold, fsUnderline];
-    end;
-
-    R := calGetCurrentRectangle;
-    R.Left := R.Left + RealLeft;
-    R.Top := R.Top + RealTop;
-    R.Right := R.Right + RealLeft;
-    R.Bottom := R.Bottom + RealTop;
-
-    R := TPSRotateRectangle (Angle, RenderIn, R);
-    if not DisplayOnly then begin
-    {$IFNDEF LCL}
-      if Focused then
-        DrawButtonFace (RenderCanvas, R, 1, bsNew, True, True, False)
-      else
-        DrawButtonFace (RenderCanvas, R, 1, bsNew, True, False, False);
-    {$ENDIF}
-      R := calGetCurrentRectangle;
-      R.Left := R.Left + RealLeft;
-      R.Top := R.Top + RealTop;
-      R.Right := R.Right + RealLeft;
-      R.Bottom := R.Bottom + RealTop;
-      TPSCenteredTextOut (RenderCanvas, Angle, RenderIn, R, S);
-    end;
-  end;
-
-var
-  Row : TRowArray;
-  Col : TColArray;
-
+procedure TVpCustomCalendar.PaintToCanvas(ACanvas: TCanvas; ARect: TRect;
+  Angle: TVpRotationAngle; ADate: TDateTime);
 begin
-  if DisplayOnly then begin
-    BevelHighlight   := clBlack;
-    BevelShadow      := clBlack;
-    InactiveDayColor := clSilver;
-    MonthYearColor   := clBlack;
-    DayNameColor     := clBlack;
-    LineColor        := clBlack;
-    EventDayColor    := clBlack;
-    DayColor         := clBlack;
-    RealColor        := clWhite;
-    WeekendColor     := $5f5f5f;
-  end else begin
-    BevelHighlight   := clBtnHighlight;
-    BevelShadow      := clBtnShadow;
-    InactiveDayColor := FColors.InactiveDays;
-    MonthYearColor   := FColors.MonthAndYear;
-    DayNameColor     := FColors.DayNames;
-    LineColor        := Font.Color;
-    EventDayColor    := FColors.EventDays;
-    DayColor         := FColors.Days;
-    RealColor        := Color;
-    WeekendColor     := FColors.WeekEnd;
-  end;
+  RenderToCanvas(ACanvas, ARect, Angle, 1, ADate, -1, -1, gr30Min, True);
+end;
 
-  calRebuildCalArray (RenderDate);
-
-  RenderCanvas.Pen.Style   := psSolid;
-  RenderCanvas.Pen.Width   := 1;
-  RenderCanvas.Pen.Mode    := pmCopy;
-  RenderCanvas.Brush.Style := bsSolid;
-
-  RenderCanvas.Lock;
+procedure TVpCustomCalendar.RenderToCanvas(RenderCanvas: TCanvas;
+  RenderIn: TRect; Angle: TVpRotationAngle; Scale: Extended;
+  RenderDate: TDateTime; StartLine: Integer; StopLine: Integer;
+  UseGran: TVpGranularity; DisplayOnly: Boolean);
+var
+  painter: TVpCalendarPainter;
+begin
+  painter := TVpCalendarPainter.Create(Self, RenderCanvas);
   try
-    SetMeasurements;
-
-    RenderCanvas.Font.Assign (Font);
-
-    if (RealRight - RealLeft <> FLastRenderX) or
-       (RealBottom - RealTop <> FLastRenderY) then begin
-      FLastRenderX := RealRight - RealLeft;
-      FLastRenderY := RealBottom - RealTop;
-      CalculateSizes (RenderCanvas, Angle, RenderIn, Row, Col, DisplayOnly);
-    end;
-    RenderCanvas.Brush.Color := RealColor;
-    RenderCanvas.FillRect(RenderIn);
-
-    {draw the month and year at the top of the calendar}
-    DrawDate;
-
-    {draw the days of the week}
-    DrawDayNames;
-
-    {draw line under day names}
-    DrawLine;
-
-    {draw each day}
-    I := 1;
-    for R := 2 to 8 do
-      for C := 0 to 6 do begin
-        if ((C = SatCol) and (cdoHighlightSat in Options)) or
-           ((C = SunCol) and (cdoHighlightSun in Options)) then
-          RenderCanvas.Font.Color := WeekendColor
-        else
-          RenderCanvas.Font.Color := DayColor;
-
-        { set highlight color and font style for days with events }
-        RenderCanvas.Font.Style := RenderCanvas.Font.Style - [fsBold];
-        lBadDate := false;
-        if (DataStore <> nil)
-        and (DataStore.Resource <> nil) then begin
-          DecodeDate(RenderDate, Y, M, D);
-          try begin
-            {$IFDEF VERSION6}
-            if not TryEncodeDate (Y, M, clCalendar[I], lDate) then
-              lBadDate := True;
-            {$ELSE}
-            if clCalendar[I] > DaysInMonth(Y, M) then
-              lDate := EncodeDate(Y, M, DaysInMonth(Y, M))
-            else
-              lDate := EncodeDate(Y, M, clCalendar[I]);
-            {$ENDIF}
-          end;
-          except
-            lBadDate := true;
-          end;
-
-          if (not lBadDate)
-          and (DataStore.Resource.Schedule.EventCountByDay(lDate) > 0)
-          then begin
-            RenderCanvas.Font.Style :=
-                RenderCanvas.Font.Style + [fsBold, fsUnderline];
-            RenderCanvas.Font.Color := EventDayColor;
-          end else
-            RenderCanvas.Font.Style :=
-                RenderCanvas.Font.Style - [fsBold, fsUnderline];
-        end;
-        DrawDay(R, C, I, (I < clFirst) or (I > clLast));
-        Inc(I);
-      end;
-
-    RenderCanvas.Font.Color := DayColor;
-    if not Assigned(FOnDrawItem) then
-      if not (cdoHideActive in FOptions) then
-        DrawFocusBox;
+    painter.RenderToCanvas(RenderIn, Angle, Scale, RenderDate,
+      StartLine, StopLine, UseGran, DisplayOnly);
   finally
-    RenderCanvas.Unlock;
+    painter.Free;
   end;
 end;
-{=====}
 
-procedure TVpCustomCalendar.SetBorderStyle(Value : TBorderStyle);
+procedure TVpCustomCalendar.SetBorderStyle(Value: TBorderStyle);
 begin
   if Value <> FBorderStyle then begin
     FBorderStyle := Value;
-    RecreateWnd{$IFDEF LCL}(self){$ENDIF};
+    RecreateWnd(Self); { *Converted from RecreateWnd* }
   end;
 end;
 {=====}
 
-procedure TVpCustomCalendar.SetBounds(ALeft, ATop, AWidth, AHeight : Integer);
+procedure TVpCustomCalendar.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
-  inherited Setbounds(ALeft, ATop, AWidth, AHeight);
-
+  inherited SetBounds(ALeft, ATop, AWidth, AHeight);
   if csLoading in ComponentState then
     Exit;
   calRecalcSize (False);
 end;
 {=====}
 
-procedure TVpCustomCalendar.SetDate(Value : TDateTime);
+procedure TVpCustomCalendar.SetDate(Value: TDateTime);
 var
-  R : TRect;
-  Y : Word;
-  M : Word;
-  D : Word;
+  R: TRect;
+  Y: Word;
+  M: Word;
+  D: Word;
 begin
   if Value <> FDate then begin
     {determine if the new date is in the same month}
@@ -1898,7 +1540,7 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.SetDateFormat(Value : TVpDateFormat);
+procedure TVpCustomCalendar.SetDateFormat(Value: TVpDateFormat);
 begin
   if Value <> FDateFormat then begin
    FDateFormat := Value;
@@ -1907,7 +1549,7 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.SetDayNameWidth(Value : TVpDayNameWidth);
+procedure TVpCustomCalendar.SetDayNameWidth(Value: TVpDayNameWidth);
 begin
   if Value <> FDayNameWidth then begin
    FDayNameWidth := Value;
@@ -1916,7 +1558,7 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.SetDisplayOptions(Value : TVpCalDisplayOptions);
+procedure TVpCustomCalendar.SetDisplayOptions(Value: TVpCalDisplayOptions);
 begin
   if Value <> FOptions then begin
     FOptions := Value;
@@ -1947,7 +1589,7 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.SetDrawHeader(Value : Boolean);
+procedure TVpCustomCalendar.SetDrawHeader(Value: Boolean);
   {-set the DrawHeader property value}
 begin
   if Value <> FDrawHeader then begin
@@ -1972,16 +1614,16 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.SetWantDblClicks(Value : Boolean);
+procedure TVpCustomCalendar.SetWantDblClicks(Value: Boolean);
 begin
   if Value <> FWantDblClicks then begin
     FWantDblClicks := Value;
-    RecreateWnd{$IFDEF LCL}(Self){$ENDIF};
+    RecreateWnd(Self); { *Converted from RecreateWnd* }
   end;
 end;
 {=====}
 
-procedure TVpCustomCalendar.SetWeekStarts(Value : TVpDayType);
+procedure TVpCustomCalendar.SetWeekStarts(Value: TVpDayType);
 begin
   if Value <> FWeekStarts then begin
     FWeekStarts := Value;
@@ -1993,91 +1635,112 @@ begin
 end;
 {=====}
 
-procedure TVpCustomCalendar.WMEraseBkgnd(var Msg : TWMEraseBkgnd);
+{$IFDEF DELPHI}
+procedure TVpCustomCalendar.WMEraseBkgnd(var Msg: TWMEraseBkgnd);
 begin
   Msg.Result := 1;   {don't erase background, just say we did. Shhhhhhh!}
 end;
 {=====}
 
-procedure TVpCustomCalendar.WMGetDlgCode(var Msg : TWMGetDlgCode);
+procedure TVpCustomCalendar.WMGetDlgCode(var Msg: TWMGetDlgCode);
 begin
   Msg.Result := DLGC_WANTARROWS;
 end;
 {=====}
 
-procedure TVpCustomCalendar.WMKillFocus(var Msg : TWMKillFocus);
+procedure TVpCustomCalendar.WMKillFocus(var Msg: TWMKillFocus);
 begin
   inherited;
   Invalidate;
 end;
 {=====}
+{$ELSE}
+procedure TVpCustomCalendar.WMEraseBkgnd(var Msg: TLMEraseBkgnd);
+begin
+  Msg.Result := 1;   {don't erase background, just say we did. Shhhhhhh!}
+end;
+{=====}
+                           {
+procedure TVpCustomCalendar.WMGetDlgCode(var Msg: TLMGetDlgCode);
+begin
+  Msg.Result := DLGC_WANTARROWS;
+end;                        }
+{=====}
+
+procedure TVpCustomCalendar.WMKillFocus(var Msg: TLMKillFocus);
+begin
+  inherited;
+  Invalidate;
+end;
+{=====}
+{$ENDIF}
+
 procedure TVpCustomCalendar.InitializeDefaultPopup;
 var
-  NewItem : TMenuItem;
-
+  NewItem: TMenuItem;
 begin
-  if RSCalendarPopupToday <> '' then begin
+  if RSToday <> '' then begin
     NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSCalendarPopupToday;
+    NewItem.Caption := RSToday;
     NewItem.OnClick := PopupToday;
     FDefaultPopup.Items.Add (NewItem);
   end;
 
-  if RSCalendarPopupNextMonth <> '' then begin
+  if RSNextMonth <> '' then begin
     NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSCalendarPopupNextMonth;
+    NewItem.Caption := RSNextMonth;
     NewItem.OnClick := PopupNextMonth;
     FDefaultPopup.Items.Add (NewItem);
   end;
 
-  if RSCalendarPopupPrevMonth <> '' then begin
+  if RSPrevMonth <> '' then begin
     NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSCalendarPopupPrevMonth;
+    NewItem.Caption := RSPrevMonth;
     NewItem.OnClick := PopupPrevMonth;
     FDefaultPopup.Items.Add (NewItem);
   end;
 
-  if RSCalendarPopupNextYear <> '' then begin
+  if RSNextYear <> '' then begin
     NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSCalendarPopupNextYear;
+    NewItem.Caption := RSNextYear;
     NewItem.OnClick := PopupNextYear;
     FDefaultPopup.Items.Add (NewItem);
   end;
 
-  if RSCalendarPopupPrevYear <> '' then begin
+  if RSPrevYear <> '' then begin
     NewItem := TMenuItem.Create (Self);
-    NewItem.Caption := RSCalendarPopupPrevYear;
+    NewItem.Caption := RSPrevYear;
     NewItem.OnClick := PopupPrevYear;
     FDefaultPopup.Items.Add (NewItem);
   end;
 end;
 {=====}
 
-procedure TVpCustomCalendar.PopupToday (Sender : TObject);
+procedure TVpCustomCalendar.PopupToday(Sender: TObject);
 begin
   SetDate (Now);
 end;
 {=====}
 
-procedure TVpCustomCalendar.PopupNextMonth (Sender : TObject);
+procedure TVpCustomCalendar.PopupNextMonth(Sender: TObject);
 begin
   IncMonth (1);
 end;
 {=====}
 
-procedure TVpCustomCalendar.PopupPrevMonth(Sender : TObject);
+procedure TVpCustomCalendar.PopupPrevMonth(Sender: TObject);
 begin
   IncMonth (-1);
 end;
 {=====}
 
-procedure TVpCustomCalendar.PopupNextYear (Sender : TObject);
+procedure TVpCustomCalendar.PopupNextYear(Sender: TObject);
 begin
   IncYear (1);
 end;
 {=====}
 
-procedure TVpCustomCalendar.PopupPrevYear (Sender : TObject);
+procedure TVpCustomCalendar.PopupPrevYear(Sender: TObject);
 begin
   IncYear (-1);
 end;

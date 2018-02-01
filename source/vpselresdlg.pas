@@ -32,12 +32,12 @@ interface
 
 uses
   {$IFDEF LCL}
-  LMessages,LCLProc,LCLType,LCLIntf,LResources,
+  LCLProc, LCLType, LCLIntf, LResources,
   {$ELSE}
-  Windows,
+  Windows, Messages,
   {$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, VpBaseDS, VpBase, VpDlg, VpResEditDlg, ExtCtrls;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  VpBaseDS, VpResEditDlg;
 
 type
   TfrmSelectResource = class(TForm)
@@ -62,8 +62,10 @@ var
 
 implementation
 
-{$IFNDEF LCL}
-{$R *.DFM}
+{$IFDEF LCL}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.DFM}
 {$ENDIF}
 
 procedure TfrmSelectResource.btnAddNewClick(Sender: TObject);
@@ -75,11 +77,6 @@ procedure TfrmSelectResource.btnEditClick(Sender: TObject);
 begin
   VpResourceEditDialog1.Execute;
 end;
-
-initialization
-{$IFDEF LCL}
-  {$I vpselresdlg.lrs}
-{$ENDIF}
 
 end.
  
