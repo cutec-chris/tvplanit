@@ -650,6 +650,7 @@ var
   task: TvpTask;
   i, j: Integer;
   stream: TStream;
+  s: TJSONStringType;
 begin
   if FFilename = '' then
     raise Exception.Create(RSNoFilenameSpecified);

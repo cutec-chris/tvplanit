@@ -434,11 +434,11 @@ begin
         StringList.Add(IntToStr(Hour) + ':' + MinStr + AMPMStr);
       end;
     end;
-    PlaceholderStartTime.Items.Assign(StringList);
-    PlaceholderStartTime.ItemIndex := 0;
+    //PlaceholderStartTime.Items.Assign(StringList);
+    //PlaceholderStartTime.ItemIndex := 0;
 
-    EndTimePlaceholder.Items.Assign(StringList);
-    EndTimePlaceholder.ItemIndex := 0;
+    //EndTimePlaceholder.Items.Assign(StringList);
+    //EndTimePlaceholder.ItemIndex := 0;
   finally
     StringList.Free;
   end;
